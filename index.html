@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Sophicuse GPA Tracker</title>
+<title>SOPHICUSE GPA Tracker</title>
 <meta name="description" content="Track your course grades, see what you need on your next assignments, and project your semester and cumulative GPA. Your data stays on your device.">
 <meta name="theme-color" content="#000E54">
 <link rel="manifest" href="manifest.webmanifest">
@@ -11,7 +11,7 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Sophicuse">
+<meta name="apple-mobile-web-app-title" content="SOPHICUSE">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap" rel="stylesheet">
@@ -222,7 +222,7 @@
 
 <script>
 /* =========================================================
-   Sophicuse GPA Tracker
+   SOPHICUSE GPA Tracker
    All data is saved in this browser (localStorage). Nothing is sent anywhere.
    ========================================================= */
 
@@ -230,7 +230,7 @@ const GP = {"A":4,"A-":3.667,"B+":3.333,"B":3,"B-":2.667,"C+":2.333,"C":2,"C-":1
 const LETTERS = Object.keys(GP);
 const STD_SCALE = [["A",93],["A-",90],["B+",87],["B",83],["B-",80],["C+",77],["C",73],["C-",70],["D",60],["F",0]];
 const DAYN = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-const KEY = "sophicuse-gpa-tracker-v1";
+const KEY = "SOPHICUSE-gpa-tracker-v1";
 
 const uid = () => Math.random().toString(36).slice(2,9);
 const clone = o => JSON.parse(JSON.stringify(o));
@@ -376,7 +376,7 @@ function renderSide(){
   const sem=semester(), V=S.view;
   const btn=(view,top,small,chip,empty,cls="")=>`<button class="navbtn ${cls} ${V===view?"on":""}" data-go="${view}" ${V===view?'aria-current="page"':""}>
      <span class="t"><b>${top}</b>${small?`<small>${esc(small)}</small>`:""}</span>${chip!==undefined?`<span class="chip ${empty?"empty":""}">${chip}</span>`:""}</button>`;
-  let h=`<div class="brand"><div class="nm">Sophicuse</div><div class="tag">GPA Tracker${S.profile.name?` for ${esc(S.profile.name)}`:""}</div></div>`;
+  let h=`<div class="brand"><div class="nm">SOPHICUSE</div><div class="tag">GPA Tracker${S.profile.name?` for ${esc(S.profile.name)}`:""}</div></div>`;
   if(!S.onboarded){ h+=btn("welcome","Get started","Set up your semester"); }
   else{
     h+=btn("overview","Overview",termName(), sem.gpa===null?"N/A":sem.gpa.toFixed(2), sem.gpa===null);
@@ -683,7 +683,7 @@ function renderSettings(){
       <div class="toolbar"><button class="btn" data-act="finishterm">Finish ${esc(termName())}</button></div></div>
     <div class="panel"><h2>Start over</h2><p>Erase everything on this device, including past semesters.</p>
       <div class="toolbar"><button class="btn danger" data-act="resetall">Erase all data</button></div></div>
-    <p class="privacy">Sophicuse is an independent student project and is not affiliated with or endorsed by Syracuse University. Grades you enter never leave your device. Projections are estimates, so always check official grades in MySlice and with your instructors.</p>`;
+    <p class="privacy">SOPHICUSE is an independent student project and is not affiliated with or endorsed by Syracuse University. Grades you enter never leave your device. Projections are estimates, so always check official grades in MySlice and with your instructors.</p>`;
 }
 
 /* ---------- Syllabus import (PDF scan + AI prompt) ---------- */
@@ -921,7 +921,7 @@ function impSumText(){
 function importPanelHTML(target){
   if(!IMP || IMP.target!==target){
     return `<div class="panel imp"><h2>Fill it in from your syllabus</h2>
-      <p>Save time by letting Sophicuse read your syllabus. You'll review everything before it's added.</p>
+      <p>Save time by letting SOPHICUSE read your syllabus. You'll review everything before it's added.</p>
       <div class="toolbar"><button class="btn pri" data-act="imp-mode" data-m="pdf" data-t="${target}">Scan a syllabus PDF</button>
       <button class="btn" data-act="imp-mode" data-m="ai" data-t="${target}">Use an AI tool</button></div></div>`;
   }
@@ -944,7 +944,7 @@ function importPanelHTML(target){
       <label class="fld" style="margin-top:14px">Paste the AI's reply here<textarea id="imp-reply" placeholder='It starts with { "code": ...'></textarea></label>
       <div class="toolbar" style="margin-top:8px"><button class="btn pri" data-act="imp-readai">Read reply</button>
       <button class="btn ghost" data-act="imp-mode" data-m="pdf" data-t="${target}">Switch to scanning a PDF</button></div>
-      <p class="privacy" style="margin-top:10px">Your syllabus goes to the AI tool you choose, under that tool's privacy terms. Sophicuse itself only receives the reply you paste.</p>`;
+      <p class="privacy" style="margin-top:10px">Your syllabus goes to the AI tool you choose, under that tool's privacy terms. SOPHICUSE itself only receives the reply you paste.</p>`;
   }
   let status=IMP.msg?`<div class="flag">${esc(IMP.msg)}</div>`:"";
   let review="";
@@ -1071,7 +1071,7 @@ document.addEventListener("click",e=>{
     case "export": {
       const blob=new Blob([JSON.stringify(Object.assign({},S,{edit:false}),null,2)],{type:"application/json"});
       const url=URL.createObjectURL(blob), link=document.createElement("a");
-      link.href=url; link.download=`sophicuse-backup-${new Date().toISOString().slice(0,10)}.json`; document.body.appendChild(link); link.click(); link.remove(); setTimeout(()=>URL.revokeObjectURL(url),1000); return; }
+      link.href=url; link.download=`SOPHICUSE-backup-${new Date().toISOString().slice(0,10)}.json`; document.body.appendChild(link); link.click(); link.remove(); setTimeout(()=>URL.revokeObjectURL(url),1000); return; }
     case "importstart": document.getElementById("importfile").click(); return;
     case "finishterm": {
       const sem=semester();
@@ -1090,7 +1090,7 @@ document.getElementById("importfile").addEventListener("change",e=>{
   r.onload=()=>{ try{ const s=sanitize(JSON.parse(r.result)); if(!s) throw 0;
       if(S.courses.length && !confirm("Replace everything on this device with the backup?")) return;
       S=s; S.onboarded=true; S.view="overview"; render(); save(); }
-    catch(err){ alert("That file doesn't look like a Sophicuse backup."); } };
+    catch(err){ alert("That file doesn't look like a SOPHICUSE backup."); } };
   r.readAsText(f); e.target.value="";
 });
 
