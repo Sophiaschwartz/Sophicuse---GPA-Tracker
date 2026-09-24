@@ -1,0 +1,1225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SOPHICUSE GPA Tracker</title>
+<meta name="description" content="Track your course grades, see what you need on your next assignments, and project your semester and cumulative GPA. Your data stays on your device.">
+<meta name="theme-color" content="#000E54">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SOPHICUSE">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --orange:#F76900; --orange-deep:#C94A00; --orange-soft:#FFEBDD;
+    --navy:#000E54; --navy-soft:#E6E9F4;
+    --paper:#F4F6FB; --line:#D8DCEA; --text:#262C4A; --muted:#5E6688;
+    --good:#1F7A4D; --warn:#B3261E;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{font-family:"Archivo",system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--text);background:var(--paper);font-size:15px;line-height:1.5;-webkit-text-size-adjust:100%}
+  button,input,select,textarea{font:inherit;color:inherit}
+  :focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+  .app{display:grid;grid-template-columns:248px 1fr;min-height:100vh;background:linear-gradient(90deg,var(--navy) 248px,var(--paper) 248px)}
+
+  nav.side{background:var(--navy);color:#fff;padding:22px 14px;position:sticky;top:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column;gap:4px}
+  .brand{padding:0 8px 16px;border-bottom:4px solid var(--orange);margin-bottom:12px}
+  .brand .nm{font-stretch:72%;font-weight:850;font-size:30px;line-height:1;letter-spacing:1px;text-transform:uppercase}
+  .brand .tag{color:#B9C0E0;font-size:13px;margin-top:5px}
+  .navbtn{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;text-align:left;background:none;border:0;border-radius:8px;padding:9px 10px;color:#DDE1F2;cursor:pointer}
+  .navbtn:hover{background:rgba(255,255,255,.07)}
+  .navbtn.on{background:#fff;color:var(--navy)}
+  .navbtn .t{display:flex;flex-direction:column;line-height:1.2;min-width:0}
+  .navbtn .t b{font-stretch:85%;font-weight:750;font-size:15px}
+  .navbtn .t small{font-size:12px;opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px}
+  .chip{font-stretch:75%;font-weight:800;font-size:15px;min-width:34px;text-align:center;padding:2px 6px;border-radius:6px;background:rgba(255,255,255,.12);color:#fff}
+  .navbtn.on .chip{background:var(--orange)}
+  .chip.empty{opacity:.6;font-stretch:100%;font-weight:600;font-size:11.5px}
+  .navbtn.wd{opacity:.6}
+  .crow.wdrow{opacity:.6}
+  .navgroup{font-size:12px;color:#8F98C4;padding:14px 10px 4px}
+  .savestate{margin-top:auto;padding:14px 10px 0;font-size:12px;color:#8F98C4}
+
+  main{padding:28px clamp(16px,4vw,48px) 80px;max-width:1120px;width:100%}
+  h1,h2,h3{color:var(--navy);margin:0}
+  h1{font-stretch:72%;font-weight:850;font-size:44px;line-height:1}
+  h2{font-stretch:80%;font-weight:800;font-size:24px;line-height:1.15}
+  h3{font-weight:700;font-size:17px}
+  .sub{color:var(--muted);margin:6px 0 0}
+  section.block{margin-top:30px}
+  .bhead{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+
+  .hero{background:var(--navy);color:#fff;border-radius:14px;padding:26px 28px;display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:24px;margin-top:20px;border-bottom:6px solid var(--orange)}
+  .hero .big{font-stretch:62%;font-weight:900;font-size:84px;line-height:.9;letter-spacing:-1px}
+  .hero .big.o{color:var(--orange)}
+  .hero .big.none{font-stretch:75%;font-weight:800;font-size:40px;line-height:1.1;color:#C4CAE6;padding-top:24px}
+  .hero .lbl{color:#C4CAE6;font-size:14px;margin-top:8px}
+  .hero .fine{color:#8F98C4;font-size:12.5px;margin-top:2px}
+
+  .courses{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  .crow{display:grid;grid-template-columns:130px 1fr 90px 64px;gap:16px;align-items:center;padding:14px 18px;border:0;border-top:1px solid var(--line);cursor:pointer;background:none;width:100%;text-align:left}
+  .crow:first-child{border-top:0}
+  .crow:hover{background:#FAFBFE}
+  .crow .code{font-stretch:75%;font-weight:800;font-size:20px;color:var(--navy);overflow-wrap:anywhere}
+  .crow .cname{font-size:13px;color:var(--muted)}
+  .crow .pct{font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
+  .crow .let{font-stretch:70%;font-weight:900;font-size:26px;color:var(--orange-deep);text-align:right}
+  .crow .let.empty{grid-column:span 2;white-space:nowrap;color:#8F96B4;font-stretch:100%;font-weight:600;font-size:13px}
+  .track{position:relative;height:12px;background:var(--navy-soft);border-radius:6px;margin-top:6px}
+  .track .fill{position:absolute;left:0;top:0;bottom:0;background:var(--orange);border-radius:6px}
+  .track .tick{position:absolute;top:-3px;bottom:-3px;width:1px;background:#9AA2C6}
+  .track .tgt{position:absolute;top:-5px;width:4px;height:22px;background:var(--navy);border-radius:2px}
+  .tracklabels{position:relative;height:14px;font-size:10.5px;color:var(--muted)}
+  .tracklabels span{position:absolute;transform:translateX(-50%)}
+  .nodata{font-size:13px;color:var(--muted);margin-top:4px}
+
+  .sched{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;overflow-x:auto}
+  .sgrid{display:grid;min-width:600px}
+  .sday{font-weight:700;color:var(--navy);text-align:center;padding-bottom:6px;font-size:14px}
+  .scol{position:relative;border-left:1px solid var(--line)}
+  .stimes{position:relative}
+  .stimes span{position:absolute;right:8px;font-size:11px;color:var(--muted);transform:translateY(-50%);white-space:nowrap}
+  .shline{position:absolute;left:0;right:0;border-top:1px dashed #E7E9F2}
+  .sblk{position:absolute;left:4px;right:4px;border-radius:6px;padding:4px 7px;font-size:12px;line-height:1.25;background:var(--navy-soft);border:0;border-left:4px solid var(--navy);color:var(--navy);overflow:hidden;cursor:pointer;text-align:left}
+  .sblk.alt{background:var(--orange-soft);border-left-color:var(--orange)}
+  .sblk b{display:block;font-size:12.5px}
+
+  .meta{display:flex;flex-wrap:wrap;gap:6px 20px;margin-top:10px;font-size:13.5px;color:var(--muted)}
+  .meta span b{color:var(--text);font-weight:600}
+  .stats{display:grid;grid-template-columns:1fr 1.5fr;margin-top:20px;background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  .stat-now{background:var(--navy);color:#fff;padding:22px 24px;display:flex;flex-direction:column;justify-content:space-between;gap:14px}
+  .stat-now .row{display:flex;align-items:flex-end;gap:14px}
+  .stat-now .big{font-stretch:62%;font-weight:900;font-size:78px;line-height:.85}
+  .stat-now .big.none{font-stretch:75%;font-weight:800;font-size:40px;line-height:1.1;color:#C4CAE6}
+  .stat-now .letter{font-stretch:62%;font-weight:900;font-size:48px;line-height:.9;color:var(--orange)}
+  .stat-now .lbl{color:#C4CAE6;font-size:13.5px}
+  .progress{height:8px;background:rgba(255,255,255,.18);border-radius:4px;overflow:hidden;margin-top:6px}
+  .progress i{display:block;height:100%;background:var(--orange)}
+  .stat-need{padding:22px 24px;display:flex;flex-direction:column;gap:14px}
+  .needline{font-size:16px}
+  .needline .n{font-stretch:70%;font-weight:900;font-size:40px;color:var(--orange-deep);line-height:1;display:block;margin:4px 0}
+  .needline .n.ok{color:var(--good)} .needline .n.bad{color:var(--warn)}
+  .ctrl{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:14px}
+  select,input[type=number],input[type=text],input[type=time],textarea{border:1px solid var(--line);border-radius:7px;padding:6px 8px;background:#fff}
+  input[type=number]{width:78px;font-variant-numeric:tabular-nums}
+  textarea{width:100%;min-height:90px;resize:vertical}
+  input.wide{width:100%}
+  .whatif{border-top:1px solid var(--line);padding-top:12px}
+  .whatif b{color:var(--navy)}
+
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:22px;align-items:center}
+  .btn{border:1px solid var(--navy);background:#fff;color:var(--navy);border-radius:8px;padding:8px 14px;cursor:pointer;font-weight:600;font-size:14px}
+  .btn:hover{background:var(--navy-soft)}
+  .btn.pri{background:var(--orange);border-color:var(--orange);color:#fff}
+  .btn.pri:hover{background:var(--orange-deep);border-color:var(--orange-deep)}
+  .btn.ghost{border-color:transparent;color:var(--muted);font-weight:500}
+  .btn.danger{border-color:var(--warn);color:var(--warn)}
+  .btn.danger:hover{background:#FDE7E4}
+  .btn.sm{padding:4px 10px;font-size:13px}
+  .x{border:0;background:none;color:var(--muted);cursor:pointer;font-size:18px;line-height:1;padding:2px 6px;border-radius:5px}
+  .x:hover{background:#FDE7E4;color:var(--warn)}
+
+  .panel{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+  .panel + .panel{margin-top:14px}
+  .panel .res{font-stretch:70%;font-weight:900;font-size:38px;color:var(--orange-deep);line-height:1.05;margin-top:8px}
+  .panel p{margin:6px 0 0;color:var(--muted);font-size:14px}
+  .notes{white-space:pre-wrap;margin:8px 0 0}
+  .flag{background:var(--orange-soft);border-left:4px solid var(--orange);padding:10px 14px;border-radius:8px;margin-top:14px;font-size:14px}
+
+  .form{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin-top:12px}
+  .form label,.fld{display:flex;flex-direction:column;gap:4px;font-size:13.5px;color:var(--muted);font-weight:600}
+  .form label input,.form label select{width:100%;font-weight:400;color:var(--text)}
+  .form .full{grid-column:1/-1}
+  .days{display:flex;gap:6px;flex-wrap:wrap}
+  .days label{flex-direction:row;align-items:center;gap:5px;border:1px solid var(--line);border-radius:8px;padding:5px 10px;background:#fff;color:var(--navy);cursor:pointer;font-weight:600}
+  .form .days label input{accent-color:var(--orange);width:16px;height:16px;flex:none;margin:0}
+  .req{color:var(--orange-deep)}
+
+  .presets{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  .presets button{border:1px dashed var(--navy);background:#fff;color:var(--navy);border-radius:999px;padding:6px 14px;cursor:pointer;font-weight:600;font-size:13.5px}
+  .presets button:hover{background:var(--navy-soft);border-style:solid}
+  .wsum{font-size:13.5px;color:var(--muted);margin-top:10px}
+
+  .cats{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:16px;margin-top:18px}
+  .cat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column}
+  .cat .top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+  .cat .share{font-size:13px;color:var(--muted)}
+  .cat .avg{font-stretch:72%;font-weight:850;font-size:26px;color:var(--navy);line-height:1;text-align:right;white-space:nowrap}
+  .cat .avg.empty{color:#8F96B4;font-stretch:100%;font-weight:600;font-size:13px;padding-top:4px}
+  .rule{font-size:12.5px;color:var(--orange-deep);margin-top:2px}
+  table.items{width:100%;border-collapse:collapse;margin-top:10px;font-size:14px}
+  table.items td{padding:4px 2px;border-top:1px solid #EEF0F6;vertical-align:middle}
+  table.items td.lab{width:100%}
+  table.items td.pc{text-align:right;color:var(--muted);white-space:nowrap;min-width:48px;font-variant-numeric:tabular-nums}
+  table.items td.of{white-space:nowrap;color:var(--muted);padding-left:6px}
+  table.items input[type=number]{width:66px}
+  .dropped td{opacity:.45}
+  .editgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;font-size:13px;color:var(--muted)}
+  .editgrid label{display:flex;flex-direction:column;gap:3px}
+  .editgrid input,.editgrid select{width:100%}
+  .empty-state{background:#fff;border:2px dashed var(--line);border-radius:14px;padding:28px;margin-top:18px;text-align:center}
+  .empty-state p{max-width:520px;margin:8px auto 14px;color:var(--muted)}
+
+  .scale{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  .scale label{display:flex;align-items:center;gap:6px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:4px 8px;font-weight:700;color:var(--navy);font-size:14px}
+  .scale input{width:62px}
+
+  table.gpa{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;font-size:14.5px}
+  table.gpa th{text-align:left;font-size:13px;color:var(--muted);font-weight:600;padding:10px 14px;background:#FAFBFE;border-bottom:1px solid var(--line)}
+  table.gpa td{padding:9px 14px;border-top:1px solid #EEF0F6}
+  table.gpa .num{text-align:right;font-variant-numeric:tabular-nums}
+  table.gpa tfoot td{font-weight:800;color:var(--navy);background:#FAFBFE}
+  table.gpa input[type=text]{width:100%}
+  .twocol{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .twocol > .panel + .panel{margin-top:0}
+  .tablewrap{overflow-x:auto}
+
+  .welcome h1{font-size:64px}
+  .steps{counter-reset:s;display:flex;flex-direction:column;gap:16px;margin-top:24px}
+  .step{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 20px 20px 64px;position:relative}
+  .step::before{counter-increment:s;content:counter(s);position:absolute;left:18px;top:16px;width:32px;height:32px;border-radius:50%;background:var(--orange);color:#fff;font-weight:800;display:grid;place-items:center;font-stretch:80%;font-size:17px}
+  .imp{border:2px solid var(--orange)}
+  .impsteps{margin:10px 0 12px;padding-left:22px}
+  .impsteps li{margin:4px 0}
+  table.imptable input[type=number]{width:70px}
+  table.imptable td{padding:6px 8px}
+  .privacy{font-size:13px;color:var(--muted);margin-top:18px}
+
+  @media (max-width:860px){
+    .app{grid-template-columns:1fr;background:var(--paper)}
+    nav.side{position:sticky;top:0;height:auto;flex-direction:row;overflow-x:auto;padding:10px;padding-top:max(10px,env(safe-area-inset-top));gap:6px;z-index:5}
+    .brand,.navgroup,.savestate{display:none}
+    .navbtn{flex:0 0 auto;width:auto}
+    .navbtn .t small{display:none}
+    .hero{grid-template-columns:1fr;gap:14px}
+    .hero .big{font-size:64px}
+    .stats{grid-template-columns:1fr}
+    .crow{grid-template-columns:90px 1fr 56px;gap:10px}
+    .crow .pct{display:none}
+    .crow .let.empty{grid-column:auto;white-space:normal}
+    .twocol{grid-template-columns:1fr}
+    .editgrid{grid-template-columns:1fr}
+    h1{font-size:36px}
+    .welcome h1{font-size:44px}
+    main{padding-bottom:calc(80px + env(safe-area-inset-bottom))}
+  }
+  @media (prefers-reduced-motion:no-preference){ .track .fill,.progress i{transition:width .35s ease} }
+</style>
+</head>
+<body>
+<div class="app">
+  <nav class="side" id="side" aria-label="Sections"></nav>
+  <main id="main"></main>
+</div>
+<input type="file" id="importfile" accept="application/json,.json" hidden>
+<input type="file" id="pdffile" accept="application/pdf,.pdf" hidden>
+
+<script>
+/* =========================================================
+   Sophicuse GPA Tracker
+   All data is saved in this browser (localStorage). Nothing is sent anywhere.
+   ========================================================= */
+
+const GP = {"A":4,"A-":3.667,"B+":3.333,"B":3,"B-":2.667,"C+":2.333,"C":2,"C-":1.667,"D":1,"F":0};
+const LETTERS = Object.keys(GP);
+const STD_SCALE = [["A",93],["A-",90],["B+",87],["B",83],["B-",80],["C+",77],["C",73],["C-",70],["D",60],["F",0]];
+const DAYN = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const KEY = "sophicuse-gpa-tracker-v1";
+
+const uid = () => Math.random().toString(36).slice(2,9);
+const clone = o => JSON.parse(JSON.stringify(o));
+const items = (prefix,n,max)=>Array.from({length:n},(_,i)=>({label:`${prefix} ${i+1}`,earned:"",max}));
+const one = (label,max=100)=>[{label,earned:"",max}];
+
+const PRESETS = {
+  "Exams":        ()=>({name:"Exams",weight:40,kind:"items",items:items("Exam",2,100)}),
+  "Midterm":      ()=>({name:"Midterm",weight:25,kind:"items",items:one("Midterm")}),
+  "Final exam":   ()=>({name:"Final exam",weight:30,kind:"items",items:one("Final exam")}),
+  "Quizzes":      ()=>({name:"Quizzes",weight:10,kind:"items",items:items("Quiz",5,10)}),
+  "Homework":     ()=>({name:"Homework",weight:20,kind:"items",items:items("HW",5,10)}),
+  "Papers":       ()=>({name:"Papers",weight:20,kind:"items",items:items("Paper",2,100)}),
+  "Labs":         ()=>({name:"Labs",weight:15,kind:"items",items:items("Lab",5,10)}),
+  "Project":      ()=>({name:"Project",weight:20,kind:"items",items:one("Project")}),
+  "Participation":()=>({name:"Participation",weight:10,kind:"items",items:one("Participation %")}),
+  "Running total":()=>({name:"Daily work",weight:10,kind:"tally",earned:"",possible:"",total:50}),
+  "Custom":       ()=>({name:"New category",weight:10,kind:"items",items:one("Score")})
+};
+
+function newCourse(info){
+  return Object.assign({id:uid(), code:"", name:"", credits:3, prof:"", room:"", days:[], start:"", end:"",
+    notes:"", target:"A", whatif:"", absences:null, status:"graded", pfResult:"", scale:clone(STD_SCALE), categories:[]}, info);
+}
+function freshState(){
+  return {v:2, onboarded:false, view:"welcome", edit:false, profile:{name:"",term:""}, past:[], other:[], courses:[], override:{}, targetCum:""};
+}
+let S = freshState();
+
+/* ---------- Storage ---------- */
+let storageOK = true, saveTimer = null;
+function setSave(msg){ const el=document.getElementById("savestate"); if(el) el.textContent=msg; }
+function save(){
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(()=>{
+    try{ const copy=Object.assign({},S,{edit:false}); localStorage.setItem(KEY, JSON.stringify(copy)); storageOK=true; setSave("Saved on this device"); }
+    catch(e){ storageOK=false; setSave("Can't save in this browser. Use Settings to download a backup."); }
+  },300);
+}
+function sanitize(d){
+  if(!d || typeof d!=="object" || !Array.isArray(d.courses)) return null;
+  const s=Object.assign(freshState(), d);
+  s.profile=Object.assign({name:"",term:""}, d.profile||{});
+  s.past=Array.isArray(d.past)?d.past:[];
+  s.other=Array.isArray(d.other)?d.other:[];
+  s.override=d.override||{};
+  s.courses=d.courses.map(c=>{ const n=newCourse(c);
+    if(!Array.isArray(n.scale)||!n.scale.length) n.scale=clone(STD_SCALE);
+    if(!Array.isArray(n.categories)) n.categories=[];
+    if(!Array.isArray(n.days)) n.days=[];
+    if(!["graded","pf","w"].includes(n.status)) n.status="graded";
+    // Older versions stored "lowest one dropped" as best (count - 1). Convert to the drop rule.
+    n.categories.forEach(k=>{ if(k.kind==="items" && parseInt(k.keep)===k.items.length-1 && k.items.length>1 && !k.drop){ k.drop=1; k.keep=null; } });
+    return n; });
+  s.edit=false;
+  if(!["welcome","overview","gpa","settings","new"].includes(s.view) && !s.courses.find(c=>c.id===s.view)) s.view="overview";
+  return s;
+}
+function load(){
+  try{ const raw=localStorage.getItem(KEY); if(raw){ const s=sanitize(JSON.parse(raw)); if(s) S=s; } }
+  catch(e){ storageOK=false; }
+  if(!S.onboarded && S.courses.length) S.onboarded=true;
+  if(!S.onboarded) S.view="welcome";
+}
+
+/* ---------- Grade math ---------- */
+const isNum = v => v!=="" && v!==null && v!==undefined && !isNaN(parseFloat(v));
+const num = v => parseFloat(v);
+const graded = it => isNum(it.earned) && num(it.max)>0;
+const getC = id => S.courses.find(c=>c.id===id);
+
+function parseRank(cat){
+  if(cat.kind!=="items" || cat.rank===undefined || cat.rank===null || String(cat.rank).trim()==="") return null;
+  const w=String(cat.rank).split(/[,\s]+/).map(Number).filter(x=>!isNaN(x)&&x>=0);
+  return w.length && w.some(x=>x>0) ? w : null;
+}
+function pick(list, cat){
+  if(!list.length) return null;
+  const rw=parseRank(cat);
+  if(rw){
+    // Highest score gets the first weight, next highest the second, and so on.
+    // With only some scores in, use the first weights for the scores you have.
+    const p=list.map(x=>x.e/x.m).sort((a,b)=>b-a);
+    let t=0,ws=0; p.forEach((v,i)=>{const w=rw[i]??0; t+=v*w; ws+=w;});
+    return ws>0 ? t/ws : p.reduce((a,v)=>a+v,0)/p.length;
+  }
+  const n=keepCount(cat, list.length);
+  const use = n<list.length ? [...list].sort((a,b)=>b.e/b.m-a.e/a.m).slice(0,n) : list;
+  const E=use.reduce((a,x)=>a+x.e,0), M=use.reduce((a,x)=>a+x.m,0); return M>0?E/M:null;
+}
+// How many of n scores count. "Drop lowest" drops as soon as there's more than one score.
+// "Best N count" counts at most N.
+function keepCount(cat, n){
+  const drop=parseInt(cat.drop), keep=parseInt(cat.keep);
+  if(drop>0) return Math.max(1, n-drop);
+  if(keep>0) return Math.min(keep, n);
+  return n;
+}
+function catNow(cat){
+  if(cat.kind==="tally") return (isNum(cat.possible)&&num(cat.possible)>0&&isNum(cat.earned))? num(cat.earned)/num(cat.possible):null;
+  return pick(cat.items.filter(graded).map(it=>({e:num(it.earned),m:num(it.max)})), cat);
+}
+function catWith(cat,x){
+  if(cat.kind==="tally"){
+    const T=num(cat.total)||0; if(T<=0) return x;
+    const P=isNum(cat.possible)?Math.min(num(cat.possible),T):0, E=isNum(cat.earned)?num(cat.earned):0;
+    return (E + x*(T-P))/T;
+  }
+  const list=cat.items.filter(it=>num(it.max)>0).map(it=>({e:graded(it)?num(it.earned):x*num(it.max), m:num(it.max)}));
+  const r=pick(list,cat); return r===null?x:r;
+}
+function catDone(cat){
+  if(cat.kind==="tally"){ const T=num(cat.total)||0; return T>0&&isNum(cat.possible)?Math.min(1,num(cat.possible)/T):0; }
+  const M=cat.items.reduce((a,it)=>a+(num(it.max)||0),0); if(!M) return 0;
+  return cat.items.filter(graded).reduce((a,it)=>a+num(it.max),0)/M;
+}
+const totalW = c => c.categories.reduce((a,k)=>a+(num(k.weight)||0),0);
+function penalty(c){
+  const a=c.absences; if(!a || !isNum(a.count)) return 0;
+  return Math.max(0, num(a.count)-(num(a.free)||0)) * ((num(a.per)||0)/100);
+}
+function courseNow(c){
+  let t=0,w=0; c.categories.forEach(k=>{const v=catNow(k), wt=num(k.weight)||0; if(v!==null&&wt>0){t+=v*wt; w+=wt;}});
+  return w>0?Math.max(0,t/w-penalty(c)):null;
+}
+function courseWith(c,x){ const W=totalW(c); if(!W) return null; return Math.max(0,c.categories.reduce((a,k)=>a+catWith(k,x)*(num(k.weight)||0),0)/W-penalty(c)); }
+function courseDone(c){ const W=totalW(c); if(!W) return 0; return c.categories.reduce((a,k)=>a+catDone(k)*(num(k.weight)||0),0)/W; }
+function cutoff(c,L){ const r=c.scale.find(s=>s[0]===L); return r&&isNum(r[1])?num(r[1])/100:null; }
+function letterOf(c,frac){ if(frac===null||frac===undefined) return null; const p=frac*100+1e-9; for(const [L,m] of c.scale){ if(isNum(m) && p>=num(m)) return L; } return "F"; }
+function needed(c,L){
+  const T=cutoff(c,L); if(T===null||!totalW(c)) return {state:"none"};
+  if(courseDone(c)>=0.9999) return {state:"done"};
+  if(courseWith(c,0)>=T-1e-9) return {state:"locked"};
+  if(courseWith(c,1.5)<T-1e-9) return {state:"out", best:courseWith(c,1)};
+  let lo=0,hi=1.5; for(let i=0;i<50;i++){const m=(lo+hi)/2; if(courseWith(c,m)>=T-1e-9) hi=m; else lo=m;}
+  return hi>1+1e-6 ? {state:"out", best:courseWith(c,1)} : {state:"ok", x:Math.min(hi,1)};
+}
+const courseLetter = c => letterOf(c,courseNow(c));
+const gpaLetter = c => S.override[c.id] || courseLetter(c);
+function prior(){
+  let cr=0,pts=0; S.past.forEach(p=>{ if(isNum(p.credits)&&isNum(p.gpa)){ cr+=num(p.credits); pts+=num(p.credits)*num(p.gpa);} });
+  const other=S.other.reduce((a,o)=>a+(isNum(o.credits)?num(o.credits):0),0);
+  return {cr,pts,gpa:cr?pts/cr:null, other, earned:cr+other};
+}
+function semester(){
+  let pts=0,cr=0; S.courses.forEach(c=>{ if(c.status!=="graded") return; const L=gpaLetter(c), k=num(c.credits)||0; if(L&&k>0){pts+=GP[L]*k; cr+=k;}});
+  const P=prior(), allCr=P.cr+cr;
+  const active=S.courses.filter(c=>c.status!=="w");
+  const termCredits=active.reduce((a,c)=>a+(c.status==="pf"&&c.pfResult==="F"?0:(num(c.credits)||0)),0);
+  const gpaTermCredits=S.courses.filter(c=>c.status==="graded").reduce((a,c)=>a+(num(c.credits)||0),0);
+  return {pts,cr,gpa:cr?pts/cr:null, cum: allCr?(P.pts+pts)/allCr:null, termCredits, gpaTermCredits};
+}
+const f1 = v => v===null||v===undefined?"N/A":(v*100).toFixed(1)+"%";
+const esc = s => String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
+const an = L => /^[AF]/.test(L)?"an":"a";
+function fmtTime(t){ if(!t) return ""; const [h,m]=t.split(":").map(Number); return `${((h+11)%12)+1}:${String(m).padStart(2,"0")} ${h>=12?"PM":"AM"}`; }
+function meets(c){ if(!c.days.length) return ""; const d=[...c.days].sort().map(i=>DAYN[i]).join("/"); return c.start&&c.end? `${d} ${fmtTime(c.start)} to ${fmtTime(c.end)}`: d; }
+const termName = () => S.profile.term || "This semester";
+
+/* ---------- Sidebar ---------- */
+function renderSide(){
+  const sem=semester(), V=S.view;
+  const btn=(view,top,small,chip,empty,cls="")=>`<button class="navbtn ${cls} ${V===view?"on":""}" data-go="${view}" ${V===view?'aria-current="page"':""}>
+     <span class="t"><b>${top}</b>${small?`<small>${esc(small)}</small>`:""}</span>${chip!==undefined?`<span class="chip ${empty?"empty":""}">${chip}</span>`:""}</button>`;
+  let h=`<div class="brand"><div class="nm">Sophicuse</div><div class="tag">GPA Tracker${S.profile.name?` for ${esc(S.profile.name)}`:""}</div></div>`;
+  if(!S.onboarded){ h+=btn("welcome","Get started","Set up your semester"); }
+  else{
+    h+=btn("overview","Overview",termName());
+    if(S.courses.length) h+=`<div class="navgroup">Courses</div>`;
+    h+=S.courses.map(c=>{
+      if(c.status==="w") return btn(c.id,esc(c.code||"Untitled"),"Withdrawn","W",true,"wd");
+      const L=courseLetter(c);
+      if(c.status==="pf") return btn(c.id,esc(c.code||"Untitled"),c.name,"P/F",false);
+      return btn(c.id,esc(c.code||"Untitled"),c.name, L||"N/A", !L);}).join("");
+    h+=`<div class="navgroup">Planning</div>`;
+    h+=btn("gpa","GPA planner","Semester and cumulative", sem.cum===null?"N/A":sem.cum.toFixed(2), sem.cum===null);
+    h+=btn("settings","Settings","Courses, backup, new term");
+  }
+  h+=`<div class="savestate" id="savestate">${storageOK?"Saved on this device":"Can't save in this browser"}</div>`;
+  document.getElementById("side").innerHTML=h;
+}
+
+/* ---------- Welcome ---------- */
+function pastTable(){
+  const P=prior();
+  const semRows=S.past.length?S.past.map((p,i)=>`<tr>
+      <td><input type="text" placeholder="Fall 2025" value="${esc(p.term)}" data-scope="past" data-i="${i}" data-f="term" aria-label="Semester name"></td>
+      <td class="num"><input type="number" inputmode="decimal" step="any" min="0" value="${esc(p.credits)}" data-scope="past" data-i="${i}" data-f="credits" aria-label="GPA credits"></td>
+      <td class="num"><input type="number" inputmode="decimal" step="0.001" min="0" max="4" style="width:96px" value="${esc(p.gpa)}" data-scope="past" data-i="${i}" data-f="gpa" aria-label="Semester GPA"></td>
+      <td><button class="x" data-act="delpast" data-i="${i}" aria-label="Remove semester">×</button></td></tr>`).join("")
+    :`<tr><td colspan="4" style="color:var(--muted)">No past semesters added.</td></tr>`;
+  const TYPES=["AP or IB exam","Transfer credit","Internship","Work or job","Pass/fail course","Other"];
+  const otherRows=S.other.length?S.other.map((o,i)=>`<tr>
+      <td><input type="text" placeholder="AP Calculus BC" value="${esc(o.desc)}" data-scope="other" data-i="${i}" data-f="desc" aria-label="What the credit is for"></td>
+      <td><select data-scope="other" data-i="${i}" data-f="type" aria-label="Credit type">${TYPES.map(t=>`<option ${o.type===t?"selected":""}>${t}</option>`).join("")}</select></td>
+      <td class="num"><input type="number" inputmode="decimal" step="any" min="0" value="${esc(o.credits)}" data-scope="other" data-i="${i}" data-f="credits" aria-label="Credits"></td>
+      <td><button class="x" data-act="delother" data-i="${i}" aria-label="Remove credit">×</button></td></tr>`).join("")
+    :`<tr><td colspan="4" style="color:var(--muted)">None added.</td></tr>`;
+  return `<h3>Past semesters</h3><p class="sub" style="margin:2px 0 10px;font-size:14px">Graded semesters from your transcript. These count toward your GPA.</p>
+    <div class="tablewrap"><table class="gpa"><thead><tr><th>Semester</th><th class="num">GPA credits</th><th class="num">Semester GPA</th><th></th></tr></thead>
+    <tbody>${semRows}</tbody>
+    <tfoot><tr><td>Cumulative GPA so far</td><td class="num" id="pastcr">${P.cr||0}</td><td class="num" id="pastgpa">${P.gpa===null?"N/A":P.gpa.toFixed(3)}</td><td></td></tr></tfoot></table></div>
+    <div style="margin-top:10px"><button class="btn sm" data-act="addpast">Add a semester</button></div>
+    <h3 style="margin-top:24px">Other credits</h3><p class="sub" style="margin:2px 0 10px;font-size:14px">AP or IB exams, transfer credit, internships, jobs, and pass/fail courses. These count toward your total credits but not your GPA.</p>
+    <div class="tablewrap"><table class="gpa"><thead><tr><th>What it's for</th><th>Type</th><th class="num">Credits</th><th></th></tr></thead>
+    <tbody>${otherRows}</tbody>
+    <tfoot><tr><td>Total other credits</td><td></td><td class="num" id="othercr">${+P.other.toFixed(2)}</td><td></td></tr></tfoot></table></div>
+    <div style="margin-top:10px"><button class="btn sm" data-act="addother">Add other credit</button></div>
+    <p class="wsum" id="earnedline" style="font-size:14px">Total credits earned so far: <b style="color:var(--navy)">${+P.earned.toFixed(2)}</b></p>`;
+}
+function renderWelcome(){
+  document.getElementById("main").innerHTML=`<div class="welcome">
+    <h1>Know where you stand.</h1>
+    <p class="sub" style="font-size:17px;max-width:620px">Track every grade in every class, see exactly what you need on the next assignment, and watch how it all adds up to your GPA.</p>
+    <div class="steps">
+      <div class="step"><h2>About you</h2>
+        <div class="form"><label>First name (optional)<input type="text" value="${esc(S.profile.name)}" data-scope="profile" data-f="name" placeholder="Alex"></label>
+        <label>Current semester<input type="text" value="${esc(S.profile.term)}" data-scope="profile" data-f="term" placeholder="Fall 2026"></label></div></div>
+      <div class="step"><h2>Credit history</h2>
+        <p class="sub">Add finished semesters and any other credit you've earned, like AP exams, transfer credit, or internships. First semester with no credit yet? Skip this.</p>
+        <div style="margin-top:12px" id="pastwrap">${pastTable()}</div></div>
+      <div class="step"><h2>Your courses</h2>
+        <p class="sub">Next you'll add each class. You can upload its syllabus to fill in the grading breakdown for you, or type it in yourself.</p>
+        <div class="toolbar" style="margin-top:12px"><button class="btn pri" data-act="finishwelcome">Add my first course</button>
+        <button class="btn ghost" data-act="importstart">I have a backup file</button></div></div>
+    </div>
+    <p class="privacy">Everything you enter stays in this browser on this device. Nothing is uploaded, and no account is needed.</p></div>`;
+}
+
+/* ---------- Overview ---------- */
+function trackHTML(c,frac){
+  const lo=60, span=40, pos=v=>Math.max(0,Math.min(100,(v-lo)/span*100));
+  const ticks=c.scale.filter(s=>num(s[1])>lo).map(s=>`<i class="tick" style="left:${pos(num(s[1]))}%"></i>`).join("");
+  const labels=c.scale.filter(s=>num(s[1])>lo && ["A","B","C"].includes(s[0])).map(s=>`<span style="left:${pos(num(s[1]))}%">${s[0]}</span>`).join("");
+  const t=cutoff(c,c.target);
+  return `<div class="track" role="img" aria-label="Current ${f1(frac)}, target ${esc(c.target)}">${ticks}
+    ${frac!==null?`<i class="fill" style="width:${pos(frac*100)}%"></i>`:""}
+    ${t!==null?`<i class="tgt" style="left:calc(${pos(t*100)}% - 2px)"></i>`:""}</div><div class="tracklabels">${labels}</div>`;
+}
+function scheduleHTML(){
+  const withTimes=S.courses.filter(c=>c.status!=="w"&&c.days.length&&c.start&&c.end);
+  if(!withTimes.length) return "";
+  const toMin=t=>{const [h,m]=t.split(":").map(Number); return h*60+m;};
+  let startH=Math.floor(Math.min(...withTimes.map(c=>toMin(c.start)))/60), endH=Math.ceil(Math.max(...withTimes.map(c=>toMin(c.end)))/60);
+  if(endH-startH<4) endH=startH+4;
+  const PX=50, H=(endH-startH)*PX, y=t=>(toMin(t)-startH*60)/60*PX;
+  const used=new Set(withTimes.flatMap(c=>c.days)); const days=[1,2,3,4,5].concat([6,0].filter(d=>used.has(d)));
+  const hours=[]; for(let h=startH;h<=endH;h++) hours.push(h);
+  const fmtH=h=>`${((h+11)%12)+1} ${h>=12&&h<24?"PM":"AM"}`;
+  const cols=days.map(d=>{
+    const blocks=withTimes.filter(c=>c.days.includes(d)).map(c=>`<button class="sblk ${S.courses.indexOf(c)%2?"alt":""}" data-go="${c.id}" style="top:${y(c.start)}px;height:${Math.max(18,y(c.end)-y(c.start))}px"><b>${esc(c.code)}</b>${esc(c.room)}</button>`).join("");
+    return `<div class="scol" style="height:${H}px">${hours.map(h=>`<i class="shline" style="top:${(h-startH)*PX}px"></i>`).join("")}${blocks}</div>`;}).join("");
+  return `<section class="block"><div class="bhead"><h2>Weekly schedule</h2><span class="sub" style="margin:0">Select a class to open it.</span></div><div class="sched">
+    <div class="sgrid" style="grid-template-columns:56px repeat(${days.length},minmax(100px,1fr))"><div></div>${days.map(d=>`<div class="sday">${DAYN[d]}</div>`).join("")}
+    <div class="stimes" style="height:${H}px">${hours.map(h=>`<span style="top:${(h-startH)*PX}px">${fmtH(h)}</span>`).join("")}</div>${cols}</div></div></section>`;
+}
+function renderOverview(){
+  const sem=semester(), P=prior();
+  const rows=S.courses.map(c=>{const now=courseNow(c), L=letterOf(c,now), W=c.status==="w", PF=c.status==="pf";
+    const tag=W?"Withdrawn":PF?"Pass/fail":`${esc(c.credits)} credit${num(c.credits)===1?"":"s"}`;
+    let right;
+    if(W) right=`<div class="let empty">Withdrawn</div>`;
+    else right=`${now===null?"":`<div class="pct">${f1(now)}</div>`}<div class="let ${L?"":"empty"}">${L||"No grades yet"}</div>`;
+    return `<button class="crow ${W?"wdrow":""}" data-go="${c.id}">
+      <div><div class="code">${esc(c.code||"Untitled")}</div><div class="cname">${tag}</div></div>
+      <div><div class="cname" style="color:var(--text);font-weight:600">${esc(c.name)}</div>
+        ${W?`<div class="nodata">Not counted in your GPA or credits.</div>`:c.categories.length?trackHTML(c,now):`<div class="nodata">Add the grading breakdown to start tracking.</div>`}</div>
+      ${right}</button>`;}).join("");
+  const others=P.other?` (includes ${+P.other.toFixed(2)} from AP, transfer, and other credit)`:"";
+  document.getElementById("main").innerHTML=`
+    <h1>${esc(termName())}</h1>
+    <p class="sub">How you're doing in every class right now.</p>
+    <div class="hero">
+      <div><div class="big o ${sem.gpa===null?"none":""}">${sem.gpa===null?"No grades yet":sem.gpa.toFixed(2)}</div><div class="lbl">Semester GPA so far</div>
+        <div class="fine">${sem.cr?`From your current grades in ${sem.cr} of ${sem.gpaTermCredits} graded credits`:"Enter grades to see it"}</div></div>
+      <div><div class="big ${sem.cum===null?"none":""}">${sem.cum===null?"Not yet":sem.cum.toFixed(3)}</div><div class="lbl">Cumulative GPA with this semester</div>
+        <div class="fine">${P.cr?`Was ${P.gpa.toFixed(3)} before this semester`:"Add past semesters in the GPA planner"}</div></div>
+      <div><div class="big">${sem.termCredits}</div><div class="lbl">Credits this semester</div><div class="fine">${+(P.earned+sem.termCredits).toFixed(2)} total after this term${others}</div></div>
+    </div>
+    ${scheduleHTML()}
+    <section class="block"><div class="bhead"><h2>Your courses</h2>${S.courses.length?`<span class="sub" style="margin:0">Orange bar is your grade now. Navy line is your target.</span>`:""}</div>
+      ${S.courses.length?`<div class="courses">${rows}</div>`:`<div class="empty-state"><h2>No courses yet</h2><p>Add each class you're taking this semester.</p><button class="btn pri" data-go="new">Add a course</button></div>`}</section>`;
+}
+
+/* ---------- Course info form (shared by new + edit) ---------- */
+function infoFields(c, scope){
+  const a=(f)=>scope?`data-scope="course" data-f="${f}"`:`data-scope="nc" data-f="${f}" id="nc-${f}"`;
+  return `<div class="form">
+    <label><span>Course code <span class="req">(required)</span></span><input type="text" ${a("code")} value="${esc(c.code)}" placeholder="ECN 101"></label>
+    <label>Course name<input type="text" ${a("name")} value="${esc(c.name)}" placeholder="Introductory Microeconomics"></label>
+    <label><span>Credits <span class="req">(required)</span></span><input type="number" inputmode="decimal" step="0.5" min="0" ${a("credits")} value="${esc(c.credits)}"></label>
+    <label>Instructor<input type="text" ${a("prof")} value="${esc(c.prof)}" placeholder="Professor's name"></label>
+    <label>Room<input type="text" ${a("room")} value="${esc(c.room)}" placeholder="Hall of Languages 115"></label>
+    <div class="fld full">Meeting days<div class="days">${[1,2,3,4,5,6,0].map(d=>`<label><input type="checkbox" ${scope?`data-scope="day" data-day="${d}"`:`data-scope="ncday" data-day="${d}"`} ${c.days.includes(d)?"checked":""}>${DAYN[d]}</label>`).join("")}</div></div>
+    <label>Starts<input type="time" ${a("start")} value="${esc(c.start)}"></label>
+    <label>Ends<input type="time" ${a("end")} value="${esc(c.end)}"></label>
+  </div>`;
+}
+function renderNew(){
+  document.getElementById("main").innerHTML=`<h1>Add a course</h1>
+    <p class="sub">Fill it in from your syllabus, or type the basics from your class schedule and set up grading on the next screen.</p>
+    <div style="margin:20px 0 14px">${importPanelHTML("new")}</div>
+    <div class="panel"><h2>Course details</h2>${infoFields(NC,false)}
+      <div id="nc-err" class="flag" style="display:none"></div>
+      <div class="toolbar"><button class="btn pri" data-act="createcourse">Create course</button>${S.courses.length?`<button class="btn ghost" data-go="overview">Cancel</button>`:""}</div></div>`;
+}
+
+/* ---------- Course page ---------- */
+function ruleText(k){
+  const rw=parseRank(k);
+  if(rw){ const tot=rw.reduce((a,b)=>a+b,0); const pct=rw.map(w=>+(w/tot*100).toFixed(1)+"%");
+    const names=pct.map((p,i)=>i===0?`highest ${p}`:i===pct.length-1&&pct.length>1?`lowest ${p}`:`next ${p}`);
+    return `Weighted by score: ${names.join(", ")}`; }
+  if(k.kind==="tally") return "Enter your running total";
+  const drop=parseInt(k.drop), keep=parseInt(k.keep);
+  if(drop>0) return drop===1?"Lowest one dropped":`Lowest ${drop} dropped`;
+  if(keep>0 && keep<k.items.length) return `Only your best ${keep} of ${k.items.length} count`;
+  return "";
+}
+function needHTML(c){
+  const now=courseNow(c), L=letterOf(c,now), T=cutoff(c,c.target), nd=needed(c,c.target), done=courseDone(c);
+  if(!c.categories.length) return `<div class="needline">Add grading categories to see what you need.</div>`;
+  const tg=`To finish with ${an(c.target)} <b>${esc(c.target)}</b> (${(T*100).toFixed(0)}%)`;
+  if(nd.state==="done") return `<div class="needline">Everything is graded. Final: <b>${f1(now)} (${L})</b>.</div>`;
+  if(nd.state==="locked") return `<div class="needline">${tg}<span class="n ok">Locked in</span>You'd keep it even with zeros on the rest.</div>`;
+  if(nd.state==="out") return `<div class="needline">${tg}<span class="n bad">Out of reach</span>Perfect scores on the rest would get you ${f1(nd.best)} (${letterOf(c,nd.best)}).</div>`;
+  return `<div class="needline">${tg}, average this on everything left:<span class="n">${(nd.x*100).toFixed(1)}%</span>${(100-done*100).toFixed(0)}% of the course is still ungraded.</div>`;
+}
+function statsHTML(c){
+  const now=courseNow(c), L=letterOf(c,now), done=courseDone(c);
+  const wi=isNum(c.whatif)?courseWith(c,num(c.whatif)/100):null;
+  return `<div class="stat-now">
+      <div><div class="lbl">Current grade</div>
+        <div class="row"><span class="big ${now===null?"none":""}">${now===null?"No grades yet":(now*100).toFixed(1)}</span><span class="letter">${L||""}</span></div></div>
+      <div><div class="lbl">${(done*100).toFixed(0)}% of the course graded</div><div class="progress"><i style="width:${done*100}%"></i></div></div></div>
+    <div class="stat-need">
+      <div class="ctrl"><label for="tgt">Target grade</label>
+        <select id="tgt" data-scope="course" data-f="target">${c.scale.map(s=>`<option ${s[0]===c.target?"selected":""}>${s[0]}</option>`).join("")}</select></div>
+      <div id="need">${needHTML(c)}</div>
+      <div class="whatif ctrl"><label for="wi">If I average</label>
+        <input type="number" inputmode="decimal" id="wi" min="0" max="120" step="1" value="${esc(c.whatif)}" data-scope="course" data-f="whatif" placeholder="85">
+        <span>% on the rest, I finish with <b id="wiout">${wi===null?"…":`${f1(wi)} (${letterOf(c,wi)})`}</b></span></div></div>`;
+}
+function keptSet(k){
+  if(k.kind!=="items"||parseRank(k)||!(parseInt(k.drop)>0||parseInt(k.keep)>0)) return null;
+  const g=k.items.map((it,i)=>({i,it})).filter(o=>graded(o.it));
+  const n=keepCount(k,g.length);
+  return new Set(g.sort((a,b)=>num(b.it.earned)/num(b.it.max)-num(a.it.earned)/num(a.it.max)).slice(0,n).map(o=>o.i));
+}
+function shareText(c,k){ const W=totalW(c), p=W?(num(k.weight)||0)/W*100:0; return `${p.toFixed(p<10?1:0)}% of final grade`; }
+function catHTML(c,k,ci){
+  const E=S.edit, v=catNow(k), rule=ruleText(k), d=`data-scope="cat" data-ci="${ci}"`;
+  let body="";
+  if(k.kind==="tally"){
+    body=`<table class="items">
+      <tr><td class="lab">Points earned so far</td><td><input type="number" inputmode="decimal" step="any" min="0" aria-label="Points earned so far" value="${esc(k.earned)}" ${d} data-f="earned"></td></tr>
+      <tr><td class="lab">Points possible so far</td><td><input type="number" inputmode="decimal" step="any" min="0" aria-label="Points possible so far" value="${esc(k.possible)}" ${d} data-f="possible"></td></tr>
+      <tr><td class="lab">Total points for the semester</td><td>${E?`<input type="number" inputmode="decimal" step="any" min="0" aria-label="Total points" value="${esc(k.total)}" ${d} data-f="total">`:`<span style="padding-left:8px">${esc(k.total)}</span>`}</td></tr></table>`;
+  } else {
+    const kept=keptSet(k);
+    body=`<table class="items">${k.items.map((it,ii)=>{const di=`data-scope="item" data-ci="${ci}" data-ii="${ii}"`; return `<tr class="${kept&&graded(it)&&!kept.has(ii)?"dropped":""}" id="row-${ci}-${ii}">
+        <td class="lab">${E?`<input type="text" class="wide" aria-label="Item name" value="${esc(it.label)}" ${di} data-f="label">`:esc(it.label)}</td>
+        <td><input type="number" inputmode="decimal" step="any" min="0" aria-label="${esc(it.label)} score" value="${esc(it.earned)}" ${di} data-f="earned"></td>
+        <td class="of">/ ${E?`<input type="number" inputmode="decimal" step="any" min="0" aria-label="${esc(it.label)} points possible" value="${esc(it.max)}" ${di} data-f="max">`:esc(it.max)}</td>
+        <td class="pc" id="pc-${ci}-${ii}">${graded(it)?(num(it.earned)/num(it.max)*100).toFixed(0)+"%":""}</td>
+        ${E?`<td><button class="x" aria-label="Remove ${esc(it.label)}" data-act="delitem" data-ci="${ci}" data-ii="${ii}">×</button></td>`:""}</tr>`;}).join("")}</table>
+      ${E?`<div style="margin-top:8px"><button class="btn sm" data-act="additem" data-ci="${ci}">Add row</button></div>`:""}`;
+  }
+  const edit=E?`<div class="editgrid">
+      <label>Category name<input type="text" value="${esc(k.name)}" ${d} data-f="name"></label>
+      <label>Weight (% or points)<input type="number" inputmode="decimal" step="any" min="0" value="${esc(k.weight)}" ${d} data-f="weight"></label>
+      <label>Entry style<select ${d} data-f="kind"><option value="items" ${k.kind==="items"?"selected":""}>Individual scores</option><option value="tally" ${k.kind==="tally"?"selected":""}>Running total</option></select></label>
+      ${k.kind==="items"?`<label>How many<input type="number" inputmode="numeric" min="1" max="100" step="1" value="${k.items.length}" ${d} data-f="count"></label>
+      <label>Points each<input type="number" inputmode="decimal" min="0" step="any" value="${esc(k.items[0]?.max??100)}" ${d} data-f="each"></label>
+      <label>Drop the lowest (blank = none)<input type="number" inputmode="numeric" min="1" step="1" value="${esc(k.drop??"")}" ${d} data-f="drop" ${parseRank(k)||parseInt(k.keep)>0?"disabled":""}></label>
+      <label>Only the best count (blank = all)<input type="number" inputmode="numeric" min="1" step="1" value="${esc(k.keep??"")}" ${d} data-f="keep" ${parseRank(k)||parseInt(k.drop)>0?"disabled":""}></label>
+      <label style="grid-column:1/-1">Weight by score, highest first (optional, e.g. 40, 40, 20)<input type="text" inputmode="decimal" value="${esc(k.rank??"")}" ${d} data-f="rank" placeholder="Leave blank to weight every score equally"></label>`:""}
+      <span></span><span style="text-align:right"><button class="btn sm ghost" data-act="delcat" data-ci="${ci}">Delete category</button></span></div>`:"";
+  return `<div class="cat"><div class="top"><div><h3>${esc(k.name)}</h3><div class="share" id="share-${ci}">${shareText(c,k)}</div>${rule?`<div class="rule">${rule}</div>`:""}</div>
+      <div class="avg ${v===null?"empty":""}" id="avg-${ci}">${v===null?"Not graded yet":(v*100).toFixed(1)+"%"}</div></div>${edit}${body}</div>`;
+}
+function absText(c){
+  const a=c.absences; if(!a) return "";
+  const n=isNum(a.count)?num(a.count):0, free=num(a.free)||0, over=Math.max(0,n-free);
+  return over?`${over} past your ${free} free: −${(over*(num(a.per)||0)).toFixed(0)}% on your overall grade (already applied)`
+             :`${free-n} free absence${free-n===1?"":"s"} left before deductions`;
+}
+function wsumText(c){
+  const W=totalW(c);
+  if(!c.categories.length) return "";
+  if(Math.abs(W-100)<1e-6) return "Weights add up to 100. Looks right.";
+  return `Weights add up to ${+W.toFixed(2)}. That's fine for a points-based class, since each category's share is its weight divided by the total. For a percent-based class, they should add up to 100.`;
+}
+function renderCourse(c){
+  const E=S.edit;
+  const m=meets(c);
+  document.getElementById("main").innerHTML=`
+    <h1>${esc(c.code||"Untitled")}</h1>
+    ${c.name?`<p class="sub" style="font-size:17px;color:var(--navy);font-weight:600">${esc(c.name)}</p>`:""}
+    ${c.status==="w"?`<div class="flag">You marked this class as withdrawn, so it isn't counted in your GPA, credits, or schedule. Change this in Settings.</div>`:c.status==="pf"?`<div class="flag">This class is pass/fail, so it counts toward your credits but not your GPA. Change this in Settings.</div>`:""}
+    <div class="meta">${c.prof?`<span><b>Instructor</b> ${esc(c.prof)}</span>`:""}${m?`<span><b>Meets</b> ${esc(m)}</span>`:""}${c.room?`<span><b>Room</b> ${esc(c.room)}</span>`:""}<span><b>Credits</b> ${esc(c.credits)}</span></div>
+    ${c.categories.length?`<div class="stats" id="stats">${statsHTML(c)}</div>`:""}
+    ${!E&&c.notes?`<div class="panel" style="margin-top:16px"><h3>Syllabus notes</h3><p class="notes" style="color:var(--text)">${esc(c.notes)}</p></div>`:""}
+    ${!E&&c.absences?`<div class="panel ctrl" style="margin-top:14px"><label for="abs"><b style="color:var(--navy)">Unexcused absences</b></label>
+       <input type="number" inputmode="numeric" id="abs" min="0" step="1" value="${esc(c.absences.count)}" data-scope="abs" data-f="count" placeholder="0">
+       <span id="absout" style="color:var(--muted)">${absText(c)}</span></div>`:""}
+    <div class="toolbar">
+      <button class="btn ${E?"pri":""}" data-act="toggleedit">${E?"Done editing":"Edit course and grading setup"}</button>
+      ${E?`<button class="btn" data-go="new">Add another course</button>`:""}
+      <span class="sub" style="margin:0;font-size:13px">${E?"Changes save as you type. Scores you've entered stay put.":"Type a score in any box. Leave a box blank until it's graded."}</span></div>
+    ${E?`<div class="panel" style="margin-top:16px"><h2>Course details</h2>${infoFields(c,true)}
+        <label class="fld" style="margin-top:14px">Syllabus notes (late policy, exam dates, anything to remember)<textarea data-scope="course" data-f="notes" placeholder="Midterm is Nov 4. Quizzes can't be made up.">${esc(c.notes)}</textarea></label>
+        <div style="margin-top:14px" class="ctrl"><label class="ctrl"><input type="checkbox" data-scope="abstoggle" ${c.absences?"checked":""}> This class takes points off for absences</label></div>
+        ${c.absences?`<div class="form"><label>Free unexcused absences<input type="number" inputmode="numeric" min="0" step="1" value="${esc(c.absences.free)}" data-scope="abs" data-f="free"></label>
+          <label>Percent off per extra absence<input type="number" inputmode="decimal" min="0" step="any" value="${esc(c.absences.per)}" data-scope="abs" data-f="per"></label></div>`:""}
+      </div>
+      <div style="margin-top:14px">${importPanelHTML(c.id)}</div>
+      <div class="panel" style="margin-top:14px"><h2>Grading breakdown</h2><p>Add a category for each line in the syllabus grading section, then set its weight. Tap to add:</p>
+        <div class="presets">${Object.keys(PRESETS).map(p=>`<button data-act="preset" data-p="${esc(p)}">${esc(p)}</button>`).join("")}</div>
+        <div class="wsum" id="wsum">${wsumText(c)}</div></div>`:""}
+    ${c.categories.length?`<div class="cats">${c.categories.map((k,ci)=>catHTML(c,k,ci)).join("")}</div>`
+      :(!E?`<div class="empty-state"><h2>No grading breakdown yet</h2><p>Open your syllabus to the grading section and add a category for each part of the grade, like exams, quizzes, or participation.</p><button class="btn pri" data-act="toggleedit">Set up grading</button></div>`:"")}
+    <section class="block"><div class="bhead"><h2>Letter grade cutoffs</h2><span class="sub" style="margin:0">${E?"Change these to match your syllabus.":"Minimum percent for each letter. Check your syllabus and edit if different."}</span></div>
+      <div class="scale">${c.scale.map((s,si)=>`<label>${s[0]} ${E&&s[0]!=="F"?`<input type="number" inputmode="decimal" step="any" value="${esc(s[1])}" data-scope="scale" data-si="${si}" aria-label="${s[0]} minimum percent">`:`<span style="font-weight:500;color:var(--muted)">${esc(s[1])}%</span>`}</label>`).join("")}</div></section>
+    ${E?`<section class="block"><button class="btn danger" data-act="delcourse">Delete this course</button></section>`:""}`;
+}
+function refreshCourse(c){
+  const st=document.getElementById("stats");
+  if(st){ const need=document.getElementById("need"); if(need) need.innerHTML=needHTML(c);
+    const now=courseNow(c), L=letterOf(c,now), big=st.querySelector(".stat-now");
+    if(big){ const done=courseDone(c);
+      big.innerHTML=`<div><div class="lbl">Current grade</div><div class="row"><span class="big ${now===null?"none":""}">${now===null?"No grades yet":(now*100).toFixed(1)}</span><span class="letter">${L||""}</span></div></div>
+        <div><div class="lbl">${(done*100).toFixed(0)}% of the course graded</div><div class="progress"><i style="width:${done*100}%"></i></div></div>`; }
+    updateWhatif(c);
+  }
+  c.categories.forEach((k,ci)=>{
+    const v=catNow(k), av=document.getElementById(`avg-${ci}`);
+    if(av){ av.textContent=v===null?"Not graded yet":(v*100).toFixed(1)+"%"; av.classList.toggle("empty",v===null); }
+    const sh=document.getElementById(`share-${ci}`); if(sh) sh.textContent=shareText(c,k);
+    if(k.kind==="items"){ const kept=keptSet(k);
+      k.items.forEach((it,ii)=>{ const pc=document.getElementById(`pc-${ci}-${ii}`); if(pc) pc.textContent=graded(it)?(num(it.earned)/num(it.max)*100).toFixed(0)+"%":"";
+        const row=document.getElementById(`row-${ci}-${ii}`); if(row) row.classList.toggle("dropped",!!(kept&&graded(it)&&!kept.has(ii))); }); }
+  });
+  const ao=document.getElementById("absout"); if(ao) ao.textContent=absText(c);
+  const ws=document.getElementById("wsum"); if(ws) ws.textContent=wsumText(c);
+  renderSide();
+}
+function updateWhatif(c){ const out=document.getElementById("wiout"); if(!out) return; const wi=isNum(c.whatif)?courseWith(c,num(c.whatif)/100):null; out.textContent=wi===null?"…":`${f1(wi)} (${letterOf(c,wi)})`; }
+
+/* ---------- GPA planner ---------- */
+function reqText(){
+  const sem=semester(), P=prior(), T=sem.gpaTermCredits, t=num(S.targetCum);
+  if(!T) return "Add graded courses first";
+  if(isNaN(t)) return "Enter a target";
+  const req=(t*(P.cr+T)-P.pts)/T;
+  return req>4?"Out of reach this term":req<=0?"Already safe":req.toFixed(3);
+}
+function renderGPA(){
+  const sem=semester(), P=prior(), T=sem.gpaTermCredits;
+  const rows=S.courses.map(c=>{
+    const name=`<td><b style="color:var(--navy)">${esc(c.code)}</b> <span style="color:var(--muted)">${esc(c.name)}</span></td><td class="num">${esc(c.credits)}</td>`;
+    if(c.status==="w") return `<tr class="dropped">${name}<td class="num">W</td><td>Withdrawn</td><td class="num">Not counted</td></tr>`;
+    if(c.status==="pf") return `<tr>${name}<td class="num">${courseLetter(c)||"N/A"}</td><td>Pass/fail</td><td class="num">Not in GPA</td></tr>`;
+    const L=courseLetter(c), use=gpaLetter(c), k=num(c.credits)||0;
+    return `<tr>${name}<td class="num">${L||"N/A"}</td>
+      <td><select data-override="${c.id}" aria-label="Letter to use for ${esc(c.code)}"><option value="">${L?`Use current (${L})`:"Not counted yet"}</option>${LETTERS.map(x=>`<option ${S.override[c.id]===x?"selected":""}>${x}</option>`).join("")}</select></td>
+      <td class="num">${use?(GP[use]*k).toFixed(3):"N/A"}</td></tr>`;}).join("");
+  const ceiling=(P.cr+T)?(P.pts+4*T)/(P.cr+T):null, change=(sem.cr&&sem.cum!==null&&P.gpa!==null)?sem.cum-P.gpa:null;
+  document.getElementById("main").innerHTML=`
+    <h1>GPA planner</h1>
+    <section class="block" style="margin-top:20px"><div class="bhead"><h2>This semester</h2><span class="sub" style="margin:0">Pick a different letter to see what happens to your GPA.</span></div>
+      ${S.courses.length?`<div class="tablewrap"><table class="gpa"><thead><tr><th>Course</th><th class="num">Credits</th><th class="num">Grade now</th><th>Letter to use</th><th class="num">Grade points</th></tr></thead>
+      <tbody>${rows}</tbody><tfoot><tr><td>Total</td><td class="num">${sem.cr}</td><td></td><td></td><td class="num">${sem.pts.toFixed(3)}</td></tr></tfoot></table></div>`:`<p class="sub">No courses yet.</p>`}</section>
+    <section class="block"><div class="bhead"><h2>What that means</h2></div>
+    <div class="hero" style="margin-top:0">
+      <div><div class="big o ${sem.gpa===null?"none":""}">${sem.gpa===null?"No grades yet":sem.gpa.toFixed(3)}</div><div class="lbl">Semester GPA</div><div class="fine">${sem.cr} of ${T} graded credits counted</div></div>
+      <div><div class="big ${sem.cum===null?"none":""}">${sem.cum===null?"Not yet":sem.cum.toFixed(3)}</div><div class="lbl">Cumulative GPA</div><div class="fine">${P.cr+sem.cr} GPA credits</div></div>
+      <div><div class="big ${change===null?"none":""}">${change===null?"N/A":(change>=0?"+":"")+change.toFixed(3)}</div><div class="lbl">${P.gpa===null?"Change from past GPA":`Change from ${P.gpa.toFixed(3)}`}</div></div>
+    </div></section>
+    <section class="block twocol">
+      <div class="panel"><h3>Hit a cumulative target</h3>
+        <div class="ctrl" style="margin-top:10px"><label for="tcum">Cumulative GPA I want after this term</label><input type="number" inputmode="decimal" id="tcum" step="0.01" min="0" max="4" value="${esc(S.targetCum)}" placeholder="3.50"></div>
+        <div class="res" id="reqout">${reqText()}</div><p>Semester GPA needed this semester.</p></div>
+      <div class="panel"><h3>Ceiling this term</h3><div class="res">${ceiling===null?"N/A":ceiling.toFixed(3)}</div><p>Your cumulative GPA if you earn an A in every graded class.</p></div>
+    </section>
+    <section class="block"><div class="bhead"><h2>Credit history</h2><span class="sub" style="margin:0">From your transcript. Edit any time.</span></div>
+      <div class="panel" id="pastwrap">${pastTable()}</div></section>
+    <p class="privacy">Grade points follow Syracuse's scale (A = 4.0, A- = 3.667, B+ = 3.333, and so on).</p>`;
+}
+
+/* ---------- Settings ---------- */
+function renderSettings(){
+  const STAT=[["graded","Letter grade (counts in GPA)"],["pf","Pass/fail"],["w","Withdrew (W)"]];
+  const list=S.courses.length?`<div class="tablewrap"><table class="gpa"><thead><tr><th>Course</th><th>Grading</th><th>Pass/fail result</th></tr></thead><tbody>
+    ${S.courses.map(c=>`<tr><td><b style="color:var(--navy)">${esc(c.code)}</b> <span style="color:var(--muted)">${esc(c.name)}</span></td>
+      <td><select data-status="${c.id}" aria-label="Grading for ${esc(c.code)}">${STAT.map(([v,l])=>`<option value="${v}" ${c.status===v?"selected":""}>${l}</option>`).join("")}</select></td>
+      <td>${c.status==="pf"?`<select data-pfres="${c.id}" aria-label="Pass/fail result for ${esc(c.code)}"><option value="" ${!c.pfResult?"selected":""}>Not final yet</option><option value="P" ${c.pfResult==="P"?"selected":""}>Passed</option><option value="F" ${c.pfResult==="F"?"selected":""}>Did not pass</option></select>`:`<span style="color:var(--muted)">N/A</span>`}</td></tr>`).join("")}
+    </tbody></table></div>`:`<p>No courses yet.</p>`;
+  document.getElementById("main").innerHTML=`<h1>Settings</h1>
+    <div class="panel" style="margin-top:20px"><h2>Your courses</h2>
+      <p>Mark a class pass/fail if you chose that option, or withdrawn if you dropped it after the add/drop deadline. Pass/fail classes count toward credits but not GPA. Withdrawn classes don't count toward either.</p>
+      <div style="margin-top:12px">${list}</div>
+      <div class="toolbar"><button class="btn pri" data-go="new">Add a course</button></div></div>
+    <div class="panel"><h2>You</h2><div class="form">
+      <label>First name<input type="text" value="${esc(S.profile.name)}" data-scope="profile" data-f="name"></label>
+      <label>Current semester<input type="text" value="${esc(S.profile.term)}" data-scope="profile" data-f="term" placeholder="Fall 2026"></label></div></div>
+    <div class="panel"><h2>Back up your grades</h2><p>Your grades live only in this browser. Clearing your browser data erases them, so download a backup now and then. You can also use a backup to move your grades to another device.</p>
+      <div class="toolbar"><button class="btn pri" data-act="export">Download backup</button><button class="btn" data-act="importstart">Restore from backup</button></div></div>
+    <div class="panel"><h2>Finish the semester</h2><p>When final grades are posted, this saves ${esc(termName())} to your credit history using the letters in the GPA planner. Passed pass/fail classes are added as other credits. Then it clears your courses so you can set up the next term.</p>
+      <div class="toolbar"><button class="btn" data-act="finishterm">Finish ${esc(termName())}</button></div></div>
+    <div class="panel"><h2>Start over</h2><p>Erase everything on this device, including your credit history.</p>
+      <div class="toolbar"><button class="btn danger" data-act="resetall">Erase all data</button></div></div>
+    <p class="privacy">Sophicuse is an independent student project and is not affiliated with or endorsed by Syracuse University. Grades you enter never leave your device. Projections are estimates, so always check official grades in MySlice and with your instructors.</p>`;
+}
+
+/* ---------- Syllabus import (PDF scan + AI prompt) ---------- */
+let NC = newCourse({});          // draft for the Add a course form
+let IMP = null;                  // {target:"new"|courseId, mode:"pdf"|"ai", status, msg, found}
+
+const AI_PROMPT = `I'm setting up a grade tracker. Read the syllabus I've attached or pasted below, then reply with ONLY a JSON code block in exactly this format. Use null for anything the syllabus doesn't say. Don't guess.
+
+{
+  "code": "course code, like ECN 101",
+  "name": "course title",
+  "credits": 3,
+  "instructor": "instructor name",
+  "room": "room or building",
+  "days": ["Mon", "Wed"],
+  "start": "15:45",
+  "end": "17:05",
+  "categories": [
+    {
+      "name": "Quizzes",
+      "weight": 10,
+      "count": 8,
+      "points_each": 10,
+      "best_count": 5,
+      "drop_lowest": null,
+      "weight_by_score": null,
+      "running_total": false
+    }
+  ],
+  "letter_cutoffs": {"A": 93, "A-": 90, "B+": 87, "B": 83, "B-": 80, "C+": 77, "C": 73, "C-": 70, "D": 60},
+  "absences": {"free": 2, "percent_per_extra": 5},
+  "notes": "2 to 5 short reminders, like exam dates, the late policy, and make-up rules"
+}
+
+Rules:
+- One category per graded component. If a component is split up (for example, Exams 60% = midterm 25% + final 35%), list the parts, not the total.
+- weight is the component's percent of the final grade. If the class is graded in points instead, use each category's total points.
+- count is how many of that item there are. points_each is what one is scored out of (use 100 if not stated).
+- best_count: if the syllabus says only the best N count (like "best 5 of 8 quizzes"), give N. Otherwise null.
+- drop_lowest: if the syllabus says the lowest one (or lowest N) is dropped, give how many are dropped. Otherwise null. Don't fill in both best_count and drop_lowest.
+- weight_by_score: if items are weighted by rank (for example, best exam 40%, second 40%, lowest 20%), list the weights highest first, like [40, 40, 20]. Otherwise null.
+- running_total: true only for many small effort points (like daily attendance or in-class exercises) that are easier to track as one running total.
+- days use Mon, Tue, Wed, Thu, Fri, Sat, Sun. Times are 24-hour.
+- letter_cutoffs are the minimum percent for each letter. Use null if the syllabus doesn't list them.
+- absences: only if the syllabus takes points off the final grade for absences. Otherwise null.`;
+
+const KW = ["exam","midterm","final","quiz","test","homework","hw","assignment","paper","essay","project","participation","attendance","lab","presentation","discussion","reading","response","reflection","problem set","memo","report","portfolio","journal","exercise","skill","knowledge","performance","recitation","engagement","writing","draft","proposal","critique","demonstration","blog","post","case stud","activity","activities","video","talk"];
+const MODS = ["final","midterm","group","weekly","daily","class","pop","short","reading","lab","in-class","term","research","written","oral","online","take-home","individual","team","course","semester","reading response","problem"];
+const NUMW = {one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,eleven:11,twelve:12,thirteen:13,fourteen:14,fifteen:15};
+const toN = w => isNum(w)?parseInt(w):NUMW[String(w).toLowerCase()];
+const hasKW = s => { const l=s.toLowerCase(); return KW.some(k=>l.includes(k)); };
+const singular = s => /quizzes$/i.test(s)?s.replace(/zes$/i,""):/ies$/i.test(s)?s.replace(/ies$/i,"y"):(/[^s]s$/i.test(s)?s.slice(0,-1):s);
+const cap1 = s => s.charAt(0).toUpperCase()+s.slice(1);
+
+function cleanName(raw){
+  let s=raw.replace(/[•●▪■◦❖\u2022\t]/g," ").replace(/#\s*/g,"").replace(/\s+/g," ").trim();
+  const filler=/(\s|^)(is|are|will|be|worth|weighted|weighing|account|accounts|for|counts?|of|the|your|final grade|grade|total|approximately|about|roughly|each|=|:|-|–|\(|\[|and)\s*$/i;
+  for(let i=0;i<8;i++){ const n=s.replace(filler,"").trim(); if(n===s) break; s=n; }
+  s=s.replace(/[:(\[\-–=,]+$/,"").trim();
+  return s;
+}
+function extractTimes(line){
+  const m=line.match(/(\d{1,2}:\d{2})\s*([ap]\.?m\.?)?\s*(?:-|–|to)\s*(\d{1,2}:\d{2})\s*([ap]\.?m\.?)?/i);
+  if(!m) return null;
+  const conv=(t,ap,fallbackPM)=>{ let [h,mi]=t.split(":").map(Number); const a=ap?ap.toLowerCase()[0]:null;
+    if(a==="p"&&h<12) h+=12; if(a==="a"&&h===12) h=0;
+    if(!a){ if(fallbackPM!==null){ if(fallbackPM&&h<12&&h<8) h+=12; } else if(h>=1&&h<=7) h+=12; }
+    return `${String(h).padStart(2,"0")}:${String(mi).padStart(2,"0")}`; };
+  const endPM=m[4]?m[4].toLowerCase()[0]==="p":null;
+  let start=conv(m[1],m[2],m[2]?null:endPM), end=conv(m[3],m[4],null);
+  if(start>end && !m[2]) start=conv(m[1],"am",null);
+  return {start,end};
+}
+function extractDays(line){
+  const l=line;
+  const found=new Set();
+  const full={monday:1,tuesday:2,wednesday:3,thursday:4,friday:5,saturday:6,sunday:0};
+  for(const [k,v] of Object.entries(full)) if(new RegExp(k,"i").test(l)) found.add(v);
+  if(found.size) return [...found];
+  const combo=l.match(/\b((?:Mo|Tu|We|Th|Fr|Sa|Su){1,5})\b/); // MoWe, TuTh
+  if(combo){ const map={Mo:1,Tu:2,We:3,Th:4,Fr:5,Sa:6,Su:0}; combo[1].match(/Mo|Tu|We|Th|Fr|Sa|Su/g).forEach(x=>found.add(map[x])); return [...found]; }
+  const ab=l.match(/\b(Mon|Tue|Tues|Wed|Thu|Thur|Thurs|Fri|Sat|Sun)\b/gi);
+  if(ab){ const map={mon:1,tue:2,tues:2,wed:3,thu:4,thur:4,thurs:4,fri:5,sat:6,sun:0}; ab.forEach(x=>found.add(map[x.toLowerCase()])); return [...found]; }
+  const letters=l.match(/\b(M?T?W?R?F?)\b(?=\s*\d{1,2}:\d{2})/);
+  if(letters && letters[1] && letters[1].length>=2){ const map={M:1,T:2,W:3,R:4,F:5}; letters[1].split("").forEach(x=>found.add(map[x])); return [...found]; }
+  return [];
+}
+function scanSyllabus(text){
+  const lines=text.split(/\n/).map(x=>x.replace(/\s+/g," ").trim()).filter(Boolean);
+  const all=lines.join("\n");
+  const info={};
+  const code=all.match(/\b([A-Z]{2,4})\s?-?\s?(\d{3})\b/); if(code) info.code=`${code[1]} ${code[2]}`;
+  const cr=all.match(/\b(\d(?:\.\d)?)\s*(?:credit hours?|credits?|cr\.?)\b/i); if(cr) info.credits=cr[1];
+  const ins=all.match(/Instructors?\s*[:\-–]\s*([^\n]{3,80})/i); if(ins) info.prof=ins[1].split(/\s{2,}|Email|E-mail|Office|Phone|Hours|\(|\|/i)[0].trim();
+  for(const ln of lines){ const t=extractTimes(ln); if(!t) continue; const d=extractDays(ln); if(d.length){ info.days=d; info.start=t.start; info.end=t.end; break; } }
+
+  // Grading categories: one percent per clause
+  const cats=[], seen=new Set();
+  const skip=/(late|deduct|penalt|extra credit|curve|per day|per class|reduction|lose|off your|subtracted|plagiar|round)/i;
+  let carry="";
+  for(const ln of lines){
+    if(skip.test(ln)){ carry=""; continue; }
+    const pms=[...ln.matchAll(/(\d{1,3}(?:\.\d+)?)\s?%/g)];
+    let prev=0, first=true;
+    for(const pm of pms){
+      const pct=parseFloat(pm[1]);
+      let before=ln.slice(prev, pm.index); prev=pm.index+pm[0].length;
+      if(first && !hasKW(before) && carry) before=carry+" "+before;   // sentence wrapped onto this line
+      first=false;
+      const after=ln.slice(prev);
+      if(/^\s*(off|deduct|penalty|reduction)\b/i.test(after)) continue;
+      if(!(pct>0&&pct<=100)) continue;
+      const cut=Math.max(before.lastIndexOf(". "), before.lastIndexOf("; "), before.lastIndexOf("): "));
+      if(cut>=0) before=before.slice(cut+2);
+      if(/^\s*[ABCDF][+-]?\s*[:=]?\s*$/.test(before)) continue;
+      let count=null, each=null, best=null;
+      const tbl=before.match(/^(.*?[A-Za-z].*?)\s+(\d+)(?:\s+of\s+(\d+))?\s+(\d+(?:\.\d+)?)\s*$/);
+      if(tbl){ before=tbl[1]; if(tbl[3]){ best=+tbl[2]; count=+tbl[3]; } else count=+tbl[2]; each=+tbl[4]; }
+      let name=cleanName(before);
+      const words=name.split(" ").filter(Boolean);
+      const k=words.findIndex(w=>hasKW(w));
+      if(k>=0){
+        let st=k; while(st>0 && MODS.includes(words[st-1].toLowerCase().replace(/[^a-z-]/g,""))) st--;
+        let en=k+1;
+        if(!/[:)]$/.test(words[k])){
+          while(en<words.length && en-k<=4){
+            const w=words[en], lw=w.toLowerCase().replace(/[^a-z]/g,"");
+            if(lw && lw===words[k].toLowerCase().replace(/[^a-z]/g,"")) break;          // "Skill Skill Rubric"
+            if(/,$/.test(words[en-1])) break;                                            // table cell ends
+            const kwNext=hasKW(w), modCur=MODS.includes(words[en-1].toLowerCase().replace(/[^a-z-]/g,""));
+            if(/^\d/.test(w) || (kwNext && modCur) || (!kwNext && /^[A-Z&]/.test(w) && !hasKW(words[en-1].replace(/[^A-Za-z]/g,"")+"x"))) en++;
+            else break;
+          }
+        }
+        name=words.slice(st,en).join(" ");
+      } else if(words.length>4 || !words.length) continue;
+      name=cleanName(name).replace(/,$/,""); if(!name || name.length<3 || !/^[A-Za-z]/.test(name)) continue;
+      name=cap1(name);
+      if(/^\s*(?:of\s+\w+\s+)?each\b/i.test(after) && cats.some(c=>c.name.toLowerCase()===name.toLowerCase())) continue;
+      const key=name.toLowerCase()+"|"+pct; if(seen.has(key)) continue; seen.add(key);
+      cats.push({on:true,name,weight:pct,count:count||1,each:each||100,best:best||"",drop:"",rank:"",tally:false});
+    }
+    const lp=pms.length?pms[pms.length-1]:null;
+    carry=(lp?ln.slice(lp.index+lp[0].length):ln).slice(-120);
+  }
+  // Counts and "best N" from sentences
+  const stems="quizzes|quiz|papers|paper|exams|exam|tests|test|assignments|assignment|homeworks|homework|labs|lab|essays|essay|projects|project|presentations|presentation|memos|memo|problem sets|exercises|midterms|responses|reflections";
+  const cntRe=new RegExp(`\\b(\\d{1,2}|${Object.keys(NUMW).join("|")})\\b\\s*(?:\\(\\d+\\)\\s*)?(?:[a-z-]+\\s+){0,2}(?:\\([^)]*\\)\\s*)?(${stems})\\b`,"gi");
+  for(const m of all.matchAll(cntRe)){
+    const n=toN(m[1]); if(!(n>1&&n<60)) continue; const st=singular(m[2].toLowerCase());
+    const c=cats.find(x=>x.name.toLowerCase().includes(st) && x.count===1 && !/\d$/.test(x.name)); if(c) c.count=n;
+  }
+  const bestRe=new RegExp(`\\bbest\\s+(\\d{1,2}|${Object.keys(NUMW).join("|")})\\b[^.]{0,40}?(${stems})`,"gi");
+  for(const m of all.matchAll(bestRe)){ const n=toN(m[1]); const st=singular(m[2].toLowerCase()); const c=cats.find(x=>x.name.toLowerCase().includes(st)); if(c&&n) c.best=n; }
+  const dropRe=new RegExp(`\\blowest\\b[^.]{0,40}?(${stems})[^.]{0,30}?\\bdropped\\b|\\bdrop(?:s|ped)?\\s+(?:the|your)?\\s*lowest\\s+(${stems})`,"gi");
+  for(const m of all.matchAll(dropRe)){ const st=singular((m[1]||m[2]).toLowerCase()); const c=cats.find(x=>x.name.toLowerCase().includes(st)); if(c&&!c.best) c.drop=1; }
+
+  // Letter cutoffs
+  const cut={};
+  const lre=/(?:^|[\s(])(A-|A|B\+|B-|B|C\+|C-|C|D\+|D-|D)\s*[:=]?\s*(\d{2,3}(?:\.\d+)?)\s*%?\s*(?:(?:-|–|to)\s*(\d{2,3}(?:\.\d+)?))?/g;
+  for(const ln of lines){ for(const m of ln.matchAll(lre)){
+    const a=parseFloat(m[2]), b=m[3]?parseFloat(m[3]):null; const v=b!==null?Math.min(a,b):a;
+    if(v>=50&&v<=100&&cut[m[1]]===undefined && (b!==null||/%|[:=]/.test(m[0]))) cut[m[1]]=v; } }
+  let scale=null;
+  const keys=Object.keys(cut).filter(k=>GP[k]!==undefined);
+  if(keys.length>=4){
+    const order=LETTERS.filter(L=>L!=="F");
+    const vals=order.map(L=>cut[L]).filter(v=>v!==undefined);
+    const mono=vals.every((v,i)=>i===0||v<vals[i-1]);
+    if(mono){ scale=clone(STD_SCALE).map(([L,m])=>[L, cut[L]!==undefined?cut[L]:m]); }
+  }
+  return {info, categories:cats, scale, absences:null, notes:""};
+}
+async function loadPdfJs(){
+  if(window.pdfjsLib) return window.pdfjsLib;
+  await new Promise((res,rej)=>{ const s=document.createElement("script"); s.src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"; s.onload=res; s.onerror=rej; document.head.appendChild(s); });
+  window.pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+  return window.pdfjsLib;
+}
+async function pdfToText(file){
+  const lib=await loadPdfJs();
+  const pdf=await lib.getDocument({data:await file.arrayBuffer()}).promise;
+  const out=[];
+  for(let p=1;p<=Math.min(pdf.numPages,25);p++){
+    const tc=await (await pdf.getPage(p)).getTextContent();
+    const rows=[];
+    tc.items.forEach(it=>{ if(!it.str.trim()) return; const y=it.transform[5], x=it.transform[4];
+      let r=rows.find(r=>Math.abs(r.y-y)<3); if(!r){ r={y,parts:[]}; rows.push(r); } r.parts.push({x,s:it.str}); });
+    rows.sort((a,b)=>b.y-a.y).forEach(r=>out.push(r.parts.sort((a,b)=>a.x-b.x).map(p=>p.s).join(" ")));
+  }
+  return out.join("\n");
+}
+function parseAI(text){
+  let t=text.replace(/```(?:json)?/gi,"");
+  const a=t.indexOf("{"), b=t.lastIndexOf("}"); if(a<0||b<=a) throw new Error("no json");
+  const d=JSON.parse(t.slice(a,b+1));
+  const info={};
+  if(d.code) info.code=String(d.code).slice(0,30);
+  if(d.name) info.name=String(d.name).slice(0,120);
+  if(isNum(d.credits)) info.credits=String(d.credits);
+  if(d.instructor) info.prof=String(d.instructor).slice(0,120);
+  if(d.room) info.room=String(d.room).slice(0,120);
+  if(Array.isArray(d.days)){ const map={sun:0,mon:1,tue:2,wed:3,thu:4,fri:5,sat:6,m:1,t:2,w:3,r:4,f:5}; const ds=d.days.map(x=>map[String(x).toLowerCase().slice(0,3)]??map[String(x).toLowerCase()]).filter(x=>x!==undefined); if(ds.length) info.days=[...new Set(ds)]; }
+  const hm=v=>{ if(!v) return ""; const s=String(v).trim(); const m=s.match(/^(\d{1,2}):(\d{2})\s*([ap])?/i); if(!m) return ""; let h=+m[1]; if(m[3]){ if(m[3].toLowerCase()==="p"&&h<12) h+=12; if(m[3].toLowerCase()==="a"&&h===12) h=0; } return `${String(h).padStart(2,"0")}:${m[2]}`; };
+  if(d.start) info.start=hm(d.start); if(d.end) info.end=hm(d.end);
+  const cats=(Array.isArray(d.categories)?d.categories:[]).filter(c=>c&&c.name).map(c=>({
+    on:true, name:String(c.name).slice(0,80), weight:isNum(c.weight)?+c.weight:"",
+    count:Math.max(1,Math.min(100,parseInt(c.count)||1)), each:isNum(c.points_each)?+c.points_each:100,
+    best:isNum(c.best_count)?parseInt(c.best_count):"", drop:isNum(c.drop_lowest)?parseInt(c.drop_lowest):"", rank:Array.isArray(c.weight_by_score)?c.weight_by_score.filter(isNum).join(", "):(c.weight_by_score&&typeof c.weight_by_score==="string"?c.weight_by_score:""),
+    tally:!!c.running_total }));
+  let scale=null;
+  if(d.letter_cutoffs && typeof d.letter_cutoffs==="object"){
+    const lc=d.letter_cutoffs; if(Object.keys(lc).some(k=>isNum(lc[k]))) scale=clone(STD_SCALE).map(([L,m])=>[L, isNum(lc[L])?+lc[L]:m]);
+  }
+  let absences=null;
+  if(d.absences && isNum(d.absences.free) && isNum(d.absences.percent_per_extra)) absences={free:+d.absences.free, per:+d.absences.percent_per_extra, count:""};
+  const notes=typeof d.notes==="string"?d.notes.slice(0,2000):Array.isArray(d.notes)?d.notes.join("\n").slice(0,2000):"";
+  return {info, categories:cats, scale, absences, notes};
+}
+function toCategory(r){
+  const n=Math.max(1,parseInt(r.count)||1), each=isNum(r.each)?+r.each:100;
+  if(r.tally) return {name:r.name, weight:r.weight, kind:"tally", earned:"", possible:"", total:n*each};
+  const base=singular(r.name.replace(/\s*\(.*?\)\s*/g," ").trim())||"Item";
+  const its=n===1?[{label:r.name,earned:"",max:each}]:Array.from({length:n},(_,i)=>({label:`${base} ${i+1}`,earned:"",max:each}));
+  const k={name:r.name, weight:r.weight, kind:"items", items:its};
+  if(isNum(r.drop)&&+r.drop>0&&+r.drop<n) k.drop=parseInt(r.drop);
+  else if(isNum(r.best)&&+r.best<n) k.keep=parseInt(r.best);
+  if(r.rank && String(r.rank).trim()) k.rank=String(r.rank);
+  return k;
+}
+function impSumText(){
+  const rows=IMP.found.categories.filter(r=>r.on); const W=rows.reduce((a,r)=>a+(num(r.weight)||0),0);
+  if(!rows.length) return "Nothing selected.";
+  if(Math.abs(W-100)<0.51) return `Selected weights add up to ${+W.toFixed(2)}. Looks right.`;
+  if(W>100) return `Selected weights add up to ${+W.toFixed(2)}. If the class is graded in points, that's fine. Otherwise, uncheck duplicates, like a total "Exams" line when the midterm and final are also listed.`;
+  return `Selected weights add up to ${+W.toFixed(2)}, so something may be missing. If the class is graded in points, that's fine. Otherwise, you can add the missing parts after importing.`;
+}
+function importPanelHTML(target){
+  if(!IMP || IMP.target!==target){
+    return `<div class="panel imp"><h2>Fill it in from your syllabus</h2>
+      <p>Save time by letting Sophicuse read your syllabus. You'll review everything before it's added.</p>
+      <div class="toolbar"><button class="btn pri" data-act="imp-mode" data-m="pdf" data-t="${target}">Scan a syllabus PDF</button>
+      <button class="btn" data-act="imp-mode" data-m="ai" data-t="${target}">Use an AI tool</button></div></div>`;
+  }
+  const f=IMP.found;
+  let body="";
+  if(IMP.mode==="pdf"){
+    body=`<p>Choose your syllabus PDF. It's read right here in your browser and never uploaded. This works best when the grading section lists percents, like "Midterm 25%."</p>
+      <div class="toolbar"><button class="btn pri" data-act="imp-pickpdf">Choose PDF</button>
+      <button class="btn ghost" data-act="imp-mode" data-m="ai" data-t="${target}">Switch to the AI option</button></div>
+      <details style="margin-top:12px"><summary style="cursor:pointer;color:var(--navy);font-weight:600">Or paste the syllabus text instead</summary>
+        <textarea id="imp-text" placeholder="Paste the grading section of your syllabus here" style="margin-top:8px"></textarea>
+        <div class="toolbar" style="margin-top:8px"><button class="btn" data-act="imp-scantext">Scan this text</button></div></details>`;
+  } else {
+    body=`<ol class="impsteps">
+        <li>Copy the prompt below.</li>
+        <li>Open Claude, ChatGPT, or another AI tool. Paste the prompt and attach your syllabus (a PDF or a photo works).</li>
+        <li>Copy the AI's whole reply and paste it into the box at the bottom.</li></ol>
+      <textarea readonly id="imp-prompt" style="min-height:130px;font-size:13px;color:var(--muted)">${esc(AI_PROMPT)}</textarea>
+      <div class="toolbar" style="margin-top:8px"><button class="btn pri" data-act="imp-copy">Copy prompt</button><span class="sub" id="imp-copied" style="margin:0;font-size:13px"></span></div>
+      <label class="fld" style="margin-top:14px">Paste the AI's reply here<textarea id="imp-reply" placeholder='It starts with { "code": ...'></textarea></label>
+      <div class="toolbar" style="margin-top:8px"><button class="btn pri" data-act="imp-readai">Read reply</button>
+      <button class="btn ghost" data-act="imp-mode" data-m="pdf" data-t="${target}">Switch to scanning a PDF</button></div>
+      <p class="privacy" style="margin-top:10px">Your syllabus goes to the AI tool you choose, under that tool's privacy terms. Sophicuse itself only receives the reply you paste.</p>`;
+  }
+  let status=IMP.msg?`<div class="flag">${esc(IMP.msg)}</div>`:"";
+  let review="";
+  if(f){
+    const infoBits=[];
+    const I=f.info||{};
+    if(I.code) infoBits.push(`course code ${esc(I.code)}`);
+    if(I.name) infoBits.push(`title`);
+    if(I.credits) infoBits.push(`${esc(I.credits)} credits`);
+    if(I.prof) infoBits.push(`instructor`);
+    if(I.days&&I.days.length) infoBits.push(`meeting times`);
+    if(f.scale) infoBits.push(`letter cutoffs`);
+    if(f.absences) infoBits.push(`absence policy`);
+    if(f.notes) infoBits.push(`notes`);
+    review=`<h3 style="margin-top:18px">Review what was found</h3>
+      ${infoBits.length?`<p>Also found: ${infoBits.join(", ")}. ${target==="new"?"These are filled into the form below.":""}</p>`:""}
+      ${f.categories.length?`<div class="tablewrap"><table class="gpa imptable" style="margin-top:10px"><thead><tr><th>Use</th><th>Category</th><th class="num">Weight</th><th class="num">How many</th><th class="num">Points each</th><th class="num">Best count</th><th class="num">Drop lowest</th><th>Score weights</th></tr></thead><tbody>
+        ${f.categories.map((r,ri)=>`<tr class="${r.on?"":"dropped"}" id="improw-${ri}">
+          <td><input type="checkbox" ${r.on?"checked":""} data-scope="imp" data-ri="${ri}" data-f="on" aria-label="Use ${esc(r.name)}"></td>
+          <td><input type="text" value="${esc(r.name)}" data-scope="imp" data-ri="${ri}" data-f="name" aria-label="Category name" style="min-width:160px"></td>
+          <td class="num"><input type="number" inputmode="decimal" step="any" value="${esc(r.weight)}" data-scope="imp" data-ri="${ri}" data-f="weight" aria-label="Weight"></td>
+          <td class="num"><input type="number" inputmode="numeric" min="1" step="1" value="${esc(r.count)}" data-scope="imp" data-ri="${ri}" data-f="count" aria-label="How many"></td>
+          <td class="num"><input type="number" inputmode="decimal" step="any" value="${esc(r.each)}" data-scope="imp" data-ri="${ri}" data-f="each" aria-label="Points each"></td>
+          <td class="num"><input type="number" inputmode="numeric" min="1" step="1" value="${esc(r.best)}" data-scope="imp" data-ri="${ri}" data-f="best" aria-label="Best count"></td>
+          <td class="num"><input type="number" inputmode="numeric" min="1" step="1" value="${esc(r.drop??"")}" data-scope="imp" data-ri="${ri}" data-f="drop" aria-label="Drop lowest"></td>
+          <td><input type="text" value="${esc(r.rank)}" data-scope="imp" data-ri="${ri}" data-f="rank" aria-label="Score weights" placeholder="optional" style="width:110px"></td></tr>`).join("")}
+        </tbody></table></div>
+        <div class="wsum" id="impsum">${impSumText()}</div>`
+      :`<p>No grading categories were found. Try the ${IMP.mode==="pdf"?"AI option":"PDF scan"}, or add categories yourself.</p>`}
+      <div class="toolbar">${target==="new"
+        ?`<span class="sub" style="margin:0">Check the form below, then click Create course.</span>`
+        :`${f.categories.length?`<button class="btn pri" data-act="imp-apply" data-how="replace">Replace my categories</button><button class="btn" data-act="imp-apply" data-how="add">Add to my categories</button>`:""}`}
+        <button class="btn ghost" data-act="imp-cancel">Start over</button></div>`;
+  }
+  return `<div class="panel imp"><div class="bhead" style="margin:0"><h2>${IMP.mode==="pdf"?"Scan your syllabus":"Read your syllabus with AI"}</h2><button class="btn sm ghost" data-act="imp-close">Close</button></div>${f?"":body}${status}${review}</div>`;
+}
+function applyFound(found){
+  IMP.found=found; IMP.msg="";
+  if(IMP.target==="new"){
+    const I=found.info||{};
+    ["code","name","credits","prof","room","start","end"].forEach(k=>{ if(I[k]) NC[k]=I[k]; });
+    if(I.days&&I.days.length) NC.days=I.days;
+  }
+  render();
+}
+function commitImportTo(c, how){
+  const f=IMP.found; const cats=f.categories.filter(r=>r.on&&r.name).map(toCategory);
+  if(how==="replace") c.categories=cats; else c.categories.push(...cats);
+  if(f.scale) c.scale=f.scale;
+  if(f.absences) c.absences=f.absences;
+  if(f.notes) c.notes=c.notes?`${c.notes}\n${f.notes}`:f.notes;
+}
+async function handlePdf(file){
+  IMP.msg="Reading your syllabus…"; IMP.found=null; render();
+  try{
+    const text=await pdfToText(file);
+    if(text.replace(/\s/g,"").length<80){ IMP.msg="This PDF doesn't seem to have selectable text (it may be a scan or photo). The AI option can read scans."; render(); return; }
+    const found=scanSyllabus(text);
+    applyFound(found);
+    if(!found.categories.length){ IMP.msg="The scan couldn't find a grading breakdown with percents. The AI option handles tables and points-based syllabi better."; render(); }
+  }catch(e){ IMP.msg="Couldn't read that file. Make sure it's a PDF and that you're online, since the PDF reader loads from the internet the first time."; render(); }
+}
+
+/* ---------- Render + routing ---------- */
+function render(){
+  renderSide();
+  const V=S.view;
+  if(V==="welcome") renderWelcome();
+  else if(V==="overview") renderOverview();
+  else if(V==="gpa") renderGPA();
+  else if(V==="settings") renderSettings();
+  else if(V==="new") renderNew();
+  else { const c=getC(V); if(c) renderCourse(c); else { S.view="overview"; renderOverview(); } }
+}
+function go(v){ if(v!==S.view){ S.edit=false; if(!(IMP&&IMP.target===v)) IMP=null; if(v==="new") NC=newCourse({}); } S.view=v; render(); window.scrollTo({top:0}); save(); }
+
+function resizeItems(k,n){
+  n=Math.max(1,Math.min(100,parseInt(n)||1));
+  const base=(k.items[0]?.label||k.name||"Item").replace(/\s*\d+\s*$/,"")||"Item", max=k.items[k.items.length-1]?.max??100;
+  while(k.items.length<n) k.items.push({label:`${base} ${k.items.length+1}`,earned:"",max});
+  while(k.items.length>n) k.items.pop();
+}
+function refreshPast(){
+  const P=prior(), set=(id,v)=>{const el=document.getElementById(id); if(el) el.innerHTML=v;};
+  set("pastcr",P.cr||0); set("pastgpa",P.gpa===null?"N/A":P.gpa.toFixed(3)); set("othercr",+P.other.toFixed(2));
+  set("earnedline",`Total credits earned so far: <b style="color:var(--navy)">${+P.earned.toFixed(2)}</b>`);
+  renderSide();
+}
+
+document.addEventListener("click",e=>{
+  const g=e.target.closest("[data-go]"); if(g){ go(g.dataset.go); return; }
+  const a=e.target.closest("[data-act]"); if(!a) return;
+  const c=getC(S.view), ci=+a.dataset.ci, ii=+a.dataset.ii;
+  switch(a.dataset.act){
+    case "toggleedit": S.edit=!S.edit; break;
+    case "additem": { const k=c.categories[ci], last=k.items[k.items.length-1]; const base=(last?.label||"Item").replace(/\s*\d+\s*$/,"")||"Item"; k.items.push({label:`${base} ${k.items.length+1}`,earned:"",max:last?last.max:100}); break; }
+    case "delitem": if(c.categories[ci].items.length<=1){ alert("A category needs at least one row. Delete the category instead."); return; } c.categories[ci].items.splice(ii,1); break;
+    case "preset": c.categories.push(PRESETS[a.dataset.p]()); break;
+    case "delcat": if(!confirm(`Delete "${c.categories[ci].name}" and its scores?`)) return; c.categories.splice(ci,1); break;
+    case "delcourse": if(!confirm(`Delete ${c.code||"this course"} and all of its grades?`)) return;
+      S.courses=S.courses.filter(x=>x.id!==c.id); delete S.override[c.id]; S.edit=false; S.view=S.courses.length?"overview":"new"; break;
+    case "addpast": S.past.push({term:"",credits:"",gpa:""}); break;
+    case "delpast": S.past.splice(+a.dataset.i,1); break;
+    case "addother": S.other.push({desc:"",type:"AP or IB exam",credits:""}); break;
+    case "delother": S.other.splice(+a.dataset.i,1); break;
+    case "finishwelcome": S.onboarded=true; S.view="new"; break;
+    case "createcourse": {
+      const err=document.getElementById("nc-err");
+      const code=String(NC.code||"").trim();
+      if(!code){ err.style.display="block"; err.textContent="Add a course code, like ECN 101."; document.getElementById("nc-code").focus(); return; }
+      if(!isNum(NC.credits)){ err.style.display="block"; err.textContent="Add the number of credits."; document.getElementById("nc-credits").focus(); return; }
+      const nc=newCourse({code, name:String(NC.name||"").trim(), credits:NC.credits, prof:NC.prof, room:NC.room, start:NC.start, end:NC.end, days:[...NC.days]});
+      if(IMP && IMP.target==="new" && IMP.found) commitImportTo(nc,"replace");
+      S.courses.push(nc); S.override[nc.id]=""; S.view=nc.id; S.edit=true; IMP=null; NC=newCourse({}); break; }
+    case "imp-mode": IMP={target:a.dataset.t, mode:a.dataset.m, msg:"", found:IMP&&IMP.target===a.dataset.t?IMP.found:null}; break;
+    case "imp-close": case "imp-cancel": IMP=a.dataset.act==="imp-cancel"&&IMP?{target:IMP.target,mode:IMP.mode,msg:"",found:null}:null; break;
+    case "imp-pickpdf": document.getElementById("pdffile").click(); return;
+    case "imp-scantext": { const t=document.getElementById("imp-text").value; if(t.trim().length<20){ IMP.msg="Paste more of the syllabus first."; break; }
+      const found=scanSyllabus(t); applyFound(found); if(!found.categories.length){ IMP.msg="The scan couldn't find a grading breakdown with percents. Try the AI option."; } break; }
+    case "imp-copy": { const ta=document.getElementById("imp-prompt"), done=()=>{ const el=document.getElementById("imp-copied"); if(el) el.textContent="Copied. Now paste it into your AI tool."; };
+      if(navigator.clipboard&&window.isSecureContext) navigator.clipboard.writeText(AI_PROMPT).then(done,()=>{ ta.select(); document.execCommand("copy"); done(); });
+      else { ta.select(); document.execCommand("copy"); done(); } return; }
+    case "imp-readai": { const t=document.getElementById("imp-reply").value;
+      try{ const found=parseAI(t); applyFound(found); if(!found.categories.length) IMP.msg="The reply didn't include any grading categories. Ask the AI to try again with the grading section."; }
+      catch(e){ IMP.msg="That reply couldn't be read. Make sure you copied the AI's entire answer, including the { and } at the start and end."; }
+      break; }
+    case "imp-apply": { if(!c) return; commitImportTo(c,a.dataset.how); IMP=null; break; }
+    case "export": {
+      const blob=new Blob([JSON.stringify(Object.assign({},S,{edit:false}),null,2)],{type:"application/json"});
+      const url=URL.createObjectURL(blob), link=document.createElement("a");
+      link.href=url; link.download=`sophicuse-backup-${new Date().toISOString().slice(0,10)}.json`; document.body.appendChild(link); link.click(); link.remove(); setTimeout(()=>URL.revokeObjectURL(url),1000); return; }
+    case "importstart": document.getElementById("importfile").click(); return;
+    case "finishterm": {
+      const sem=semester();
+      if(!sem.cr){ alert("None of your graded courses have a letter yet. Enter grades or pick letters in the GPA planner first."); return; }
+      if(!confirm(`Save ${termName()} as ${sem.cr} credits with a ${sem.gpa.toFixed(3)} GPA, then clear this semester's courses? Download a backup first if you want to keep the details.`)) return;
+      S.past.push({term:termName(),credits:sem.cr,gpa:+sem.gpa.toFixed(3)});
+      const pfCr=S.courses.filter(c=>c.status==="pf"&&c.pfResult!=="F").reduce((a,c)=>a+(num(c.credits)||0),0);
+      if(pfCr) S.other.push({desc:`Pass/fail courses, ${termName()}`,type:"Pass/fail course",credits:pfCr});
+      S.courses=[]; S.override={}; S.profile.term=""; S.view="new"; break; }
+    case "resetall": if(!confirm("Erase all courses, grades, and past semesters on this device? This can't be undone.")) return;
+      S=freshState(); break;
+  }
+  render(); save();
+});
+
+document.getElementById("importfile").addEventListener("change",e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{ try{ const s=sanitize(JSON.parse(r.result)); if(!s) throw 0;
+      if(S.courses.length && !confirm("Replace everything on this device with the backup?")) return;
+      S=s; S.onboarded=true; S.view="overview"; render(); save(); }
+    catch(err){ alert("That file doesn't look like a Sophicuse backup."); } };
+  r.readAsText(f); e.target.value="";
+});
+
+document.getElementById("pdffile").addEventListener("change",e=>{ const f=e.target.files[0]; e.target.value=""; if(f&&IMP) handlePdf(f); });
+
+document.addEventListener("input",e=>{
+  const t=e.target, sc=t.dataset.scope, f=t.dataset.f;
+  if(t.id==="tcum"){ S.targetCum=t.value; document.getElementById("reqout").textContent=reqText(); save(); return; }
+  if(!sc) return;
+  if(sc==="nc"){ NC[f]=t.value; return; }
+  if(sc==="imp"){ const r=IMP.found.categories[+t.dataset.ri]; if(f==="on") return; r[f]=t.value; const el=document.getElementById("impsum"); if(el) el.textContent=impSumText(); return; }
+  if(sc==="profile"){ S.profile[f]=t.value; renderSide(); save(); return; }
+  if(sc==="past"){ S.past[+t.dataset.i][f]=t.value; refreshPast(); save(); return; }
+  if(sc==="other"){ S.other[+t.dataset.i][f]=t.value; refreshPast(); save(); return; }
+  const c=getC(S.view); if(!c) return;
+  if(sc==="course"){
+    if(f==="target") return;
+    c[f]=t.value;
+    if(f==="whatif"){ updateWhatif(c); save(); return; }
+    if(f==="credits") refreshCourse(c); else renderSide();
+    save(); return;
+  }
+  if(sc==="abs"){ c.absences[f]=t.value; refreshCourse(c); save(); return; }
+  if(sc==="scale"){ c.scale[+t.dataset.si][1]=t.value; refreshCourse(c); save(); return; }
+  if(sc==="cat"){ const k=c.categories[+t.dataset.ci];
+    if(f==="kind"||f==="count"||f==="each") return;
+    if(f==="keep"||f==="drop") k[f]=t.value===""?null:Math.max(1,parseInt(t.value)||1); else k[f]=t.value;
+    refreshCourse(c); save(); return; }
+  if(sc==="item"){ c.categories[+t.dataset.ci].items[+t.dataset.ii][f]=t.value; refreshCourse(c); save(); return; }
+});
+document.addEventListener("change",e=>{
+  const t=e.target, sc=t.dataset.scope, f=t.dataset.f;
+  if(sc==="ncday"){ const d=+t.dataset.day; NC.days=NC.days.filter(x=>x!==d); if(t.checked) NC.days.push(d); return; }
+  if(sc==="imp"&&f==="on"){ const ri=+t.dataset.ri; IMP.found.categories[ri].on=t.checked; document.getElementById("improw-"+ri)?.classList.toggle("dropped",!t.checked); document.getElementById("impsum").textContent=impSumText(); return; }
+  if(t.dataset.status){ const c=getC(t.dataset.status); c.status=t.value; if(t.value!=="pf") c.pfResult=""; if(t.value!=="graded") S.override[c.id]=""; render(); save(); return; }
+  if(t.dataset.pfres){ getC(t.dataset.pfres).pfResult=t.value; render(); save(); return; }
+  if(t.dataset.override){ S.override[t.dataset.override]=t.value; render(); save(); return; }
+  const c=getC(S.view); if(!c) return;
+  if(sc==="course"&&f==="target"){ c.target=t.value; refreshCourse(c); save(); return; }
+  if(sc==="day"){ const d=+t.dataset.day; c.days=c.days.filter(x=>x!==d); if(t.checked) c.days.push(d); save(); return; }
+  if(sc==="abstoggle"){ c.absences=t.checked?{free:2,per:5,count:""}:null; render(); save(); return; }
+  if(sc==="cat"){ const k=c.categories[+t.dataset.ci];
+    if(f==="kind"){ k.kind=t.value;
+      if(t.value==="tally"){ if(k.earned===undefined) k.earned=""; if(k.possible===undefined) k.possible=""; if(!isNum(k.total)) k.total=100; }
+      if(t.value==="items" && !Array.isArray(k.items)) k.items=one("Score");
+      render(); save(); return; }
+    if(f==="count"){ resizeItems(k,t.value); render(); save(); return; }
+    if(f==="rank"||f==="keep"||f==="drop"){ render(); return; }
+    if(f==="each"){ if(isNum(t.value)) k.items.forEach(it=>it.max=t.value); render(); save(); return; }
+  }
+  if(sc==="cat"&&f==="name"){ const h=t.closest(".cat")?.querySelector("h3"); if(h) h.textContent=t.value; }
+});
+
+/* ---------- Start ---------- */
+load(); render();
+if("serviceWorker" in navigator && location.protocol.startsWith("http")){
+  window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+}
+</script>
+</body>
+</html>
