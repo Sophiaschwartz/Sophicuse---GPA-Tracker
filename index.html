@@ -376,8 +376,8 @@ function prior(){
   const other=S.other.reduce((a,o)=>a+(isNum(o.credits)?num(o.credits):0),0);
   return {cr,pts,gpa:cr?pts/cr:null, other, earned:cr+other};
 }
-function semester(){
-  let pts=0,cr=0; S.courses.forEach(c=>{ if(c.status!=="graded") return; const L=gpaLetter(c), k=num(c.credits)||0; if(L&&k>0){pts+=GP[L]*k; cr+=k;}});
+function semester(useWhatIf=true){
+  let pts=0,cr=0; S.courses.forEach(c=>{ if(c.status!=="graded") return; const L=useWhatIf?gpaLetter(c):courseLetter(c), k=num(c.credits)||0; if(L&&k>0){pts+=GP[L]*k; cr+=k;}});
   const P=prior(), allCr=P.cr+cr;
   const active=S.courses.filter(c=>c.status!=="w");
   const termCredits=active.reduce((a,c)=>a+(c.status==="pf"&&c.pfResult==="F"?0:(num(c.credits)||0)),0);
@@ -489,7 +489,7 @@ function scheduleHTML(){
     <div class="stimes" style="height:${H}px">${hours.map(h=>`<span style="top:${(h-startH)*PX}px">${fmtH(h)}</span>`).join("")}</div>${cols}</div></div></section>`;
 }
 function renderOverview(){
-  const sem=semester(), P=prior();
+  const sem=semester(false), P=prior();
   const rows=S.courses.map(c=>{const now=courseNow(c), L=letterOf(c,now), W=c.status==="w", PF=c.status==="pf";
     const tag=W?"Withdrawn":PF?"Pass/fail":`${esc(c.credits)} credit${num(c.credits)===1?"":"s"}`;
     let right;
