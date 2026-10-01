@@ -267,7 +267,7 @@ function newCourse(info){
     notes:"", desc:"", prereq:"", catalogCredits:"", target:"A", whatif:"", absences:null, status:"graded", pfResult:"", scale:clone(STD_SCALE), categories:[]}, info);
 }
 function freshState(){
-  return {v:2, onboarded:false, view:"welcome", edit:false, profile:{name:"",term:""}, past:[], other:[], courses:[], override:{}, targetCum:""};
+  return {v:2, onboarded:false, view:"welcome", edit:false, profile:{name:"",term:currentTerm()}, past:[], other:[], courses:[], override:{}, targetCum:"", plan:{goal:"",avg:"A",next:"15"}};
 }
 let S = freshState();
 
@@ -285,6 +285,8 @@ function sanitize(d){
   if(!d || typeof d!=="object" || !Array.isArray(d.courses)) return null;
   const s=Object.assign(freshState(), d);
   s.profile=Object.assign({name:"",term:""}, d.profile||{});
+  if(!validTerm(s.profile.term)) s.profile.term=currentTerm();
+  s.plan=Object.assign({goal:"",avg:"A",next:"15"}, d.plan||{});
   s.past=Array.isArray(d.past)?d.past:[];
   s.other=Array.isArray(d.other)?d.other:[];
   s.override=d.override||{};
@@ -399,7 +401,16 @@ const esc = s => String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">
 const an = L => /^[AF]/.test(L)?"an":"a";
 function fmtTime(t){ if(!t) return ""; const [h,m]=t.split(":").map(Number); return `${((h+11)%12)+1}:${String(m).padStart(2,"0")} ${h>=12?"PM":"AM"}`; }
 function meets(c){ if(!c.days.length) return ""; const d=[...c.days].sort().map(i=>DAYN[i]).join("/"); return c.start&&c.end? `${d} ${fmtTime(c.start)} to ${fmtTime(c.end)}`: d; }
-const termName = () => S.profile.term || "This semester";
+const termName = () => S.profile.term || currentTerm();
+/* Semesters run Spring (Jan), Summer (May), Fall (Aug). Only the current term and past terms can be picked. */
+const SEASONS=[["Spring",1],["Summer",5],["Fall",8]];
+function currentTerm(d=new Date()){ const m=d.getMonth()+1, y=d.getFullYear(); return m>=8?`Fall ${y}`:m>=5?`Summer ${y}`:`Spring ${y}`; }
+function termOptions(d=new Date()){
+  const y=d.getFullYear(), m=d.getMonth()+1, out=[];
+  for(let yr=y; yr>=y-6; yr--) for(const [sn,start] of [...SEASONS].reverse()) if(yr<y || start<=m) out.push(`${sn} ${yr}`);
+  return out;
+}
+const validTerm = t => termOptions().includes(t);
 
 /* ---------- Sidebar ---------- */
 function renderSide(){
@@ -459,7 +470,7 @@ function renderWelcome(){
     <div class="steps">
       <div class="step"><h2>About you</h2>
         <div class="form"><label>First name (optional)<input type="text" value="${esc(S.profile.name)}" data-scope="profile" data-f="name" placeholder="Alex"></label>
-        <label>Current semester<input type="text" value="${esc(S.profile.term)}" data-scope="profile" data-f="term" placeholder="Fall 2026"></label></div></div>
+        <label>Current semester<select data-scope="profile" data-f="term">${termOptions().map(t=>`<option ${t===S.profile.term?"selected":""}>${t}</option>`).join("")}</select></label></div></div>
       <div class="step"><h2>Credit history</h2>
         <p class="sub">Add finished semesters and any other credit you've earned, like AP exams, transfer credit, or internships. First semester with no credit yet? Skip this.</p>
         <div style="margin-top:12px" id="pastwrap">${pastTable()}</div></div>
@@ -525,6 +536,44 @@ function renderOverview(){
     ${scheduleHTML()}
     <section class="block"><div class="bhead"><h2>Your courses</h2>${S.courses.length?`<span class="sub" style="margin:0">Orange bar is your grade now. Navy line is your target.</span>`:""}</div>
       ${S.courses.length?`<div class="courses">${rows}</div>`:`<div class="empty-state"><h2>No courses yet</h2><p>Add each class you're taking this semester.</p><button class="btn pri" data-go="new">Add a course</button></div>`}</section>`;
+}
+/* ---------- Plan ahead (overview) ---------- */
+function planBase(){ const P=prior(), sem=semester(); return {cr:P.cr+sem.cr, pts:P.pts+sem.pts, semCr:sem.cr}; }
+function planGoalText(){
+  const B=planBase(), X=num(S.plan.goal), g=GP[S.plan.avg]??4;
+  if(!B.cr) return {big:"Add grades first", small:"Add past semesters in the GPA planner, or enter grades this semester."};
+  if(isNaN(X)) return {big:"Enter a goal", small:"Type the cumulative GPA you're aiming for."};
+  const cur=B.pts/B.cr;
+  if(X>4) return {big:"Not possible", small:"GPAs top out at 4.0."};
+  if(cur>=X-1e-9) return {big:"You're there", small:`Your GPA is already ${cur.toFixed(3)}. Keep averaging at least a ${X.toFixed(2)} to stay there.`};
+  if(g<=X+1e-9) return {big:"Not with that average", small:`Averaging ${S.plan.avg} (${g.toFixed(3)}) can't raise your GPA to ${X.toFixed(2)}. Try a higher average.`};
+  const n=Math.ceil((X*B.cr-B.pts)/(g-X)-1e-9);
+  const sems=Math.ceil(n/15);
+  return {big:`${n} more credits`, small:`At ${an(S.plan.avg)} ${S.plan.avg} average, that's about ${sems} semester${sems===1?"":"s"} at 15 credits each.`};
+}
+function planNextText(){
+  const B=planBase(), N=num(S.plan.next);
+  if(!B.cr) return {big:"Add grades first", small:"Add past semesters in the GPA planner, or enter grades this semester."};
+  if(!(N>0)) return {big:"Enter credits", small:"Type how many credits you plan to take."};
+  const cur=B.pts/B.cr, max=(B.pts+4*N)/(B.cr+N);
+  return {big:max.toFixed(3), small:`With straight A's, up ${(max-cur>=0?"+":"")+(max-cur).toFixed(3)} from ${cur.toFixed(3)}.`};
+}
+function planAheadHTML(){
+  const B=planBase(), a=planGoalText(), b=planNextText();
+  return `<section class="block"><div class="bhead"><h2>Plan ahead</h2><span class="sub" style="margin:0">${B.cr?`Starting from your ${(B.pts/B.cr).toFixed(3)} GPA over ${+B.cr.toFixed(2)} GPA credits${B.semCr?", including this semester's letters above":""}.`:""}</span></div>
+    <div class="twocol">
+      <div class="panel"><h3>Reach a GPA goal</h3>
+        <div class="ctrl" style="margin-top:10px"><label for="plan-goal">I want a cumulative GPA of</label><input type="number" inputmode="decimal" id="plan-goal" step="0.01" min="0" max="4" value="${esc(S.plan.goal)}" placeholder="3.90" data-scope="plan" data-f="goal"></div>
+        <div class="ctrl" style="margin-top:8px"><label for="plan-avg">If I average</label><select id="plan-avg" data-scope="plan" data-f="avg">${LETTERS.filter(L=>GP[L]>=2).map(L=>`<option ${S.plan.avg===L?"selected":""}>${L}</option>`).join("")}</select><span>in my future classes</span></div>
+        <div class="res" id="plan-goal-big">${a.big}</div><p id="plan-goal-small">${a.small}</p></div>
+      <div class="panel"><h3>Next semester's ceiling</h3>
+        <div class="ctrl" style="margin-top:10px"><label for="plan-next">If I take</label><input type="number" inputmode="decimal" id="plan-next" step="1" min="1" max="30" value="${esc(S.plan.next)}" data-scope="plan" data-f="next"><span>credits next semester</span></div>
+        <div class="res" id="plan-next-big">${b.big}</div><p id="plan-next-small">${b.small}</p><p style="margin-top:2px">That's the highest your cumulative GPA can go.</p></div>
+    </div></section>`;
+}
+function refreshPlan(){
+  const a=planGoalText(), b=planNextText(), set=(id,v)=>{const el=document.getElementById(id); if(el) el.textContent=v;};
+  set("plan-goal-big",a.big); set("plan-goal-small",a.small); set("plan-next-big",b.big); set("plan-next-small",b.small);
 }
 
 /* ---------- Course info form (shared by new + edit) ---------- */
@@ -734,6 +783,7 @@ function renderGPA(){
         <div class="res" id="reqout">${reqText()}</div><p>Semester GPA needed this semester.</p></div>
       <div class="panel"><h3>Ceiling this term</h3><div class="res">${ceiling===null?"N/A":ceiling.toFixed(3)}</div><p>Your cumulative GPA if you earn an A in every graded class.</p></div>
     </section>
+    ${planAheadHTML()}
     <section class="block"><div class="bhead"><h2>Credit history</h2><span class="sub" style="margin:0">From your transcript. Edit any time.</span></div>
       <div class="panel" id="pastwrap">${pastTable()}</div></section>
     <p class="privacy">Grade points follow Syracuse's scale (A = 4.0, A- = 3.667, B+ = 3.333, and so on).</p>`;
@@ -755,7 +805,7 @@ function renderSettings(){
       <div class="toolbar"><button class="btn pri" data-go="new">Add a course</button></div></div>
     <div class="panel"><h2>You</h2><div class="form">
       <label>First name<input type="text" value="${esc(S.profile.name)}" data-scope="profile" data-f="name"></label>
-      <label>Current semester<input type="text" value="${esc(S.profile.term)}" data-scope="profile" data-f="term" placeholder="Fall 2026"></label></div></div>
+      <label>Current semester<select data-scope="profile" data-f="term">${termOptions().map(t=>`<option ${t===S.profile.term?"selected":""}>${t}</option>`).join("")}</select></label></div></div>
     <div class="panel"><h2>Back up your grades</h2><p>Your grades live only in this browser. Clearing your browser data erases them, so download a backup now and then. You can also use a backup to move your grades to another device.</p>
       <div class="toolbar"><button class="btn pri" data-act="export">Download backup</button><button class="btn" data-act="importstart">Restore from backup</button></div></div>
     <div class="panel"><h2>Finish the semester</h2><p>When final grades are posted, this saves ${esc(termName())} to your credit history using the letters in the GPA planner. Passed pass/fail classes are added as other credits. Then it clears your courses so you can set up the next term.</p>
@@ -1228,7 +1278,7 @@ async function applySchedule(){
       status:/p\/f|pass|sat/i.test(r.grading||"")?"pf":"graded"});
     S.courses.push(c); S.override[c.id]="";
   });
-  if(!S.profile.term && SCH.term) S.profile.term=SCH.term;
+  if(SCH.term && validTerm(SCH.term)) S.profile.term=SCH.term;
   S.onboarded=true; SCH=null; S.view="overview"; render(); save(); window.scrollTo({top:0});
 }
 
@@ -1355,7 +1405,7 @@ document.addEventListener("click",e=>{
       S.past.push({term:termName(),credits:sem.cr,gpa:+sem.gpa.toFixed(3)});
       const pfCr=S.courses.filter(c=>c.status==="pf"&&c.pfResult!=="F").reduce((a,c)=>a+(num(c.credits)||0),0);
       if(pfCr) S.other.push({desc:`Pass/fail courses, ${termName()}`,type:"Pass/fail course",credits:pfCr});
-      S.courses=[]; S.override={}; S.profile.term=""; S.view="new"; break; }
+      S.courses=[]; S.override={}; S.profile.term=currentTerm(); S.view="new"; break; }
     case "resetall": if(!confirm("Erase all courses, grades, and past semesters on this device? This can't be undone.")) return;
       S=freshState(); break;
   }
@@ -1382,6 +1432,7 @@ document.addEventListener("input",e=>{
   if(sc==="nc"){ NC[f]=t.value; return; }
   if(sc==="catq"){ showCatalogResults(t.value); return; }
   if(sc==="imp"){ const r=IMP.found.categories[+t.dataset.ri]; if(f==="on") return; r[f]=t.value; const el=document.getElementById("impsum"); if(el) el.textContent=impSumText(); return; }
+  if(sc==="plan"){ S.plan[f]=t.value; refreshPlan(); save(); return; }
   if(sc==="profile"){ S.profile[f]=t.value; renderSide(); save(); return; }
   if(sc==="past"){ S.past[+t.dataset.i][f]=t.value; refreshPast(); save(); return; }
   if(sc==="other"){ S.other[+t.dataset.i][f]=t.value; refreshPast(); save(); return; }
