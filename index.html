@@ -229,6 +229,7 @@
 </div>
 <input type="file" id="importfile" accept="application/json,.json" hidden>
 <input type="file" id="pdffile" accept="application/pdf,.pdf" hidden>
+<input type="file" id="schedfile" accept="application/pdf,.pdf" hidden>
 
 <script>
 /* =========================================================
@@ -463,8 +464,9 @@ function renderWelcome(){
         <p class="sub">Add finished semesters and any other credit you've earned, like AP exams, transfer credit, or internships. First semester with no credit yet? Skip this.</p>
         <div style="margin-top:12px" id="pastwrap">${pastTable()}</div></div>
       <div class="step"><h2>Your courses</h2>
-        <p class="sub">Next you'll add each class. You can upload its syllabus to fill in the grading breakdown for you, or type it in yourself.</p>
-        <div class="toolbar" style="margin-top:12px"><button class="btn pri" data-act="finishwelcome">Add my first course</button>
+        <p class="sub">The fastest way is to import your class schedule from MySlice, which adds every class at once. Then upload each syllabus to fill in grading.</p>
+        <div style="margin-top:12px">${schedulePanelHTML()}</div>
+        <div class="toolbar" style="margin-top:12px"><button class="btn" data-act="finishwelcome">Add courses one at a time</button>
         <button class="btn ghost" data-act="importstart">I have a backup file</button></div></div>
     </div>
     <p class="privacy">Everything you enter stays in this browser on this device. Nothing is uploaded, and no account is needed.</p></div>`;
@@ -542,6 +544,7 @@ function infoFields(c, scope){
 function renderNew(){
   document.getElementById("main").innerHTML=`<h1>Add a course</h1>
     <p class="sub">Fill it in from your syllabus, or type the basics from your class schedule and set up grading on the next screen.</p>
+    <details class="about" style="margin-top:16px"${SCH?" open":""}><summary>Adding several classes? Import your whole schedule</summary><div style="margin-top:10px">${schedulePanelHTML()}</div></details>
     <div class="panel" style="margin-top:20px"><h2>Find your course</h2>
       <p>Search the Syracuse course catalog by code or name to fill in the basics.</p>
       <input type="search" id="catq" class="wide" data-scope="catq" placeholder="Try ECN 101 or Microeconomics" autocomplete="off" aria-label="Search the course catalog" style="margin-top:10px;font-size:16px">
@@ -748,6 +751,7 @@ function renderSettings(){
     <div class="panel" style="margin-top:20px"><h2>Your courses</h2>
       <p>Mark a class pass/fail if you chose that option, or withdrawn if you dropped it after the add/drop deadline. Pass/fail classes count toward credits but not GPA. Withdrawn classes don't count toward either.</p>
       <div style="margin-top:12px">${list}</div>
+      <div style="margin-top:14px">${schedulePanelHTML()}</div>
       <div class="toolbar"><button class="btn pri" data-go="new">Add a course</button></div></div>
     <div class="panel"><h2>You</h2><div class="form">
       <label>First name<input type="text" value="${esc(S.profile.name)}" data-scope="profile" data-f="name"></label>
@@ -1086,6 +1090,148 @@ async function handlePdf(file){
   }catch(e){ IMP.msg="Couldn't read that file. Make sure it's a PDF and that you're online, since the PDF reader loads from the internet the first time."; render(); }
 }
 
+/* ---------- Class schedule import (MySlice "My Class Schedule" PDF) ---------- */
+let SCH = null;   // {status, msg, term, rows:[...]}
+
+async function pdfItems(file){
+  const lib=await loadPdfJs();
+  const pdf=await lib.getDocument({data:await file.arrayBuffer()}).promise;
+  const out=[]; let off=0;
+  for(let p=1;p<=Math.min(pdf.numPages,15);p++){
+    const page=await pdf.getPage(p), vp=page.getViewport({scale:1}), tc=await page.getTextContent();
+    tc.items.forEach(it=>{ if(!it.str||!it.str.trim()) return;
+      out.push({s:it.str, x:it.transform[4], w:it.width||it.str.length*4, y:off+vp.height-it.transform[5]}); });
+    off+=vp.height+20;
+  }
+  return out;
+}
+// Join pieces of text that sit side by side into "cells"; big gaps mean a new column.
+function toRuns(items){
+  const rows=[];
+  [...items].sort((a,b)=>a.y-b.y||a.x-b.x).forEach(it=>{
+    let r=rows.find(r=>Math.abs(r.y-it.y)<2.5); if(!r){ r={y:it.y,items:[]}; rows.push(r); } r.items.push(it); });
+  const runs=[];
+  rows.sort((a,b)=>a.y-b.y).forEach(r=>{
+    r.items.sort((a,b)=>a.x-b.x); let cur=null;
+    r.items.forEach(it=>{
+      if(cur && it.x-(cur.x+cur.w) < 7){ cur.s+=(it.x-(cur.x+cur.w)>0.8?" ":"")+it.s; cur.w=it.x+it.w-cur.x; }
+      else { cur={s:it.s.trim(), x:it.x, w:it.w, y:r.y}; runs.push(cur); }
+    });
+  });
+  runs.forEach(r=>r.s=r.s.replace(/\s+/g," ").trim());
+  return runs;
+}
+function parseSchedule(items){
+  const runs=toRuns(items).filter(r=>!/^https?:\/\//.test(r.s) && !/^My Class Schedule/.test(r.s) && !/Page \d+ of \d+/.test(r.s));
+  const TITLE=/^([A-Z]{2,4})\s?(\d{3}[A-Z]?)\s+-\s+(.+)$/;
+  const termRun=runs.find(r=>/\b(Fall|Spring|Summer|Winter)\s+\d{4}\b/.test(r.s));
+  const term=termRun?termRun.s.match(/\b(Fall|Spring|Summer|Winter)\s+\d{4}\b/)[0]:"";
+  const titles=runs.filter(r=>TITLE.test(r.s));
+  const courses=[];
+  titles.forEach((t,ti)=>{
+    const endY=ti+1<titles.length?titles[ti+1].y:Infinity;
+    const block=runs.filter(r=>r.y>t.y && r.y<endY);
+    const m=t.s.match(TITLE);
+    const c={on:true, code:`${m[1]} ${m[2]}`, name:m[3].trim(), credits:"", status:"", grading:"", days:[], start:"", end:"", room:"", prof:"", extra:[]};
+    // Status / Units / Grading
+    const st=block.find(r=>/^Status\b/.test(r.s));
+    if(st){
+      const below=block.filter(r=>r.y>st.y+2 && r.y<st.y+25).sort((a,b)=>a.y-b.y||a.x-b.x);
+      const rowY=below.length?below[0].y:null;
+      const row=below.filter(r=>Math.abs(r.y-rowY)<2.5).map(r=>r.s).join(" ");
+      const sm=row.match(/^(Enrolled|Dropped|Wait\s?listed|Withdrawn|Waitlist(?:ed)?)/i); if(sm) c.status=sm[1];
+      const um=row.match(/\b(\d{1,2}(?:\.\d+)?)\b/); if(um) c.credits=String(+um[1]);
+      const gm=row.match(/\b(A-F|P\/F|SAT\/UNSAT|Pass\/Fail|Audit|AU|NR)\b/i); if(gm) c.grading=gm[1];
+    }
+    // Section table header
+    const days=block.find(r=>/^Days\b/.test(r.s));
+    if(days){
+      const hdr=block.filter(r=>Math.abs(r.y-days.y)<2.5);
+      const nbr=block.find(r=>/^Nbr$/.test(r.s) && Math.abs(r.y-days.y)<20);
+      const hdrBottom=Math.max(days.y, nbr?nbr.y:days.y);
+      const colX=name=>{ const h=hdr.find(r=>new RegExp("^"+name).test(r.s)); return h?h.x:null; };
+      const cols=[["nbr",-1e9],["section",colX("Section")],["component",colX("Component")],["days",days.x],["room",colX("Room")],["moi",colX("MOI")],["prof",colX("Instructor")],["dates",colX("Start")]]
+        .filter(c=>c[1]!==null).sort((a,b)=>a[1]-b[1]);
+      const colOf=r=>{ let k="nbr"; for(const [n,x] of cols) if(r.x+3>=x) k=n; return k; };
+      const data=block.filter(r=>r.y>hdrBottom+1.5);
+      const anchors=data.filter(r=>colOf(r)==="nbr" && /^\d{4,6}$/.test(r.s));
+      const meetings=anchors.map(a=>({y:a.y, cells:{}}));
+      data.forEach(r=>{
+        if(!meetings.length) return;
+        let best=null,bd=1e9; meetings.forEach(mt=>{ const d=Math.abs(mt.y-r.y); if(d<bd){bd=d;best=mt;} });
+        if(bd>30) return;
+        const k=colOf(r); if(k==="nbr") return;
+        (best.cells[k]=best.cells[k]||[]).push(r);
+      });
+      const txt=(mt,k)=>(mt.cells[k]||[]).sort((a,b)=>a.y-b.y||a.x-b.x).map(r=>r.s).join(" ").replace(/\s+-\s*$/,"").replace(/\s+/g," ").trim();
+      meetings.forEach((mt,i)=>{
+        const comp=txt(mt,"component"), dt=txt(mt,"days"), room=txt(mt,"room"), prof=txt(mt,"prof");
+        const t=extractTimes(dt), d=extractDays(dt);
+        if(i===0){ c.days=d; if(t){ c.start=t.start; c.end=t.end; } c.room=room; c.prof=prof.replace(/\s*,\s*/g,", ").replace(/,\s*$/,""); c.component=comp; }
+        else if(dt||room) c.extra.push(`${comp||"Meeting"}: ${dt}${room?`, ${room}`:""}`);
+      });
+    }
+    const s=(c.status||"").toLowerCase();
+    if(s && s!=="enrolled") c.on=false;
+    courses.push(c);
+  });
+  return {term, courses};
+}
+
+const SCHED_HOWTO = "In MySlice, open My Class Schedule in list view. Use your browser's Print command and choose Save as PDF, then upload that PDF here. It's read on this device and never uploaded.";
+function schedulePanelHTML(){
+  if(!SCH) return `<div class="panel imp"><h2>Import your class schedule</h2>
+      <p>Add all your classes at once, with credits, meeting times, rooms, and instructors filled in. ${SCHED_HOWTO}</p>
+      <div class="toolbar"><button class="btn pri" data-act="sch-pick">Upload schedule PDF</button></div></div>`;
+  const rows=SCH.rows||[];
+  const on=rows.filter(r=>r.on).length;
+  return `<div class="panel imp"><div class="bhead" style="margin:0"><h2>Import your class schedule</h2><button class="btn sm ghost" data-act="sch-close">Close</button></div>
+    ${SCH.msg?`<div class="flag">${esc(SCH.msg)}</div>`:""}
+    ${rows.length?`<p>Found ${rows.length} class${rows.length===1?"":"es"}${SCH.term?` for ${esc(SCH.term)}`:""}. Uncheck any you don't want to add.</p>
+      <div class="tablewrap"><table class="gpa" style="margin-top:10px"><thead><tr><th>Add</th><th>Course</th><th class="num">Credits</th><th>Meets</th><th>Room</th><th>Instructor</th><th>Note</th></tr></thead><tbody>
+      ${rows.map((r,i)=>`<tr class="${r.on?"":"dropped"}" id="schrow-${i}"><td><input type="checkbox" ${r.on?"checked":""} data-scope="sch" data-ri="${i}" aria-label="Add ${esc(r.code)}"></td>
+        <td><b style="color:var(--navy)">${esc(r.code)}</b> <span style="color:var(--muted)">${esc(r.name)}</span></td>
+        <td class="num">${esc(r.credits)}</td><td>${esc(meets(r)||"Not listed")}</td><td>${esc(r.room)}</td><td>${esc(r.prof)}</td><td style="color:var(--muted)">${esc(r.note||"")}</td></tr>`).join("")}
+      </tbody></table></div>
+      <div class="toolbar"><button class="btn pri" data-act="sch-apply" id="sch-apply">${on?`Add ${on} class${on===1?"":"es"}`:"Nothing selected"}</button>
+        <button class="btn ghost" data-act="sch-pick">Choose a different PDF</button></div>
+      <p class="privacy">Grading breakdowns aren't on your schedule, so you'll add those from each syllabus afterward.</p>`
+    :`<div class="toolbar"><button class="btn pri" data-act="sch-pick">Upload schedule PDF</button></div>`}
+  </div>`;
+}
+async function handleSchedule(file){
+  SCH={rows:[], msg:"Reading your schedule…"}; render();
+  try{
+    const items=await pdfItems(file);
+    if(items.length<20){ SCH={rows:[],msg:"This PDF doesn't have readable text. Save the schedule from MySlice with Print, then Save as PDF, rather than taking a screenshot."}; render(); return; }
+    const parsed=parseSchedule(items);
+    if(!parsed.courses.length){ SCH={rows:[],msg:"No classes were found. Make sure it's the My Class Schedule page in list view, saved as a PDF."}; render(); return; }
+    const have=new Set(S.courses.map(c=>String(c.code).replace(/\s+/g,"").toUpperCase()));
+    parsed.courses.forEach(r=>{
+      const st=(r.status||"").toLowerCase();
+      if(have.has(r.code.replace(/\s+/g,"").toUpperCase())){ r.on=false; r.note="Already added"; }
+      else if(st && st!=="enrolled"){ r.on=false; r.note=r.status; }
+      else if(/p\/f|pass|sat/i.test(r.grading||"")) r.note="Pass/fail";
+    });
+    SCH={rows:parsed.courses, term:parsed.term, msg:""};
+  }catch(e){ SCH={rows:[],msg:"Couldn't read that file. Make sure it's a PDF and that you're online, since the PDF reader loads from the internet the first time."}; }
+  render();
+}
+async function applySchedule(){
+  const rows=SCH.rows.filter(r=>r.on); if(!rows.length) return;
+  await loadCatalog();
+  rows.forEach(r=>{
+    const k=(CATALOG||[]).find(x=>x.c.replace(/\s+/g,"")===r.code.replace(/\s+/g,""));
+    const c=newCourse({code:r.code, name:r.name || (k&&k.t) || "", credits:r.credits||(k&&/^\d+(\.\d+)?$/.test(k.cr)?k.cr:3),
+      prof:r.prof, room:r.room, days:r.days||[], start:r.start||"", end:r.end||"",
+      notes:(r.extra||[]).join("\n"), desc:k?k.d||"":"", prereq:k?k.p||"":"",
+      status:/p\/f|pass|sat/i.test(r.grading||"")?"pf":"graded"});
+    S.courses.push(c); S.override[c.id]="";
+  });
+  if(!S.profile.term && SCH.term) S.profile.term=SCH.term;
+  S.onboarded=true; SCH=null; S.view="overview"; render(); save(); window.scrollTo({top:0});
+}
+
 /* ---------- Course catalog search ---------- */
 let CATALOG=null, catalogLoad=null;
 function loadCatalog(){
@@ -1175,6 +1321,9 @@ document.addEventListener("click",e=>{
       const nc=newCourse({code, name:String(NC.name||"").trim(), credits:NC.credits, prof:NC.prof, room:NC.room, start:NC.start, end:NC.end, days:[...NC.days], desc:NC.desc||"", prereq:NC.prereq||""});
       if(IMP && IMP.target==="new" && IMP.found) commitImportTo(nc,"replace");
       S.courses.push(nc); S.override[nc.id]=""; S.view=nc.id; S.edit=true; IMP=null; NC=newCourse({}); break; }
+    case "sch-pick": document.getElementById("schedfile").click(); return;
+    case "sch-close": SCH=null; break;
+    case "sch-apply": applySchedule(); return;
     case "catpick": {
       const k=(CATALOG||[]).find(x=>x.c===a.dataset.code); if(!k) return;
       NC.code=k.c; NC.name=k.t||""; NC.desc=k.d||""; NC.prereq=k.p||"";
@@ -1223,6 +1372,7 @@ document.getElementById("importfile").addEventListener("change",e=>{
   r.readAsText(f); e.target.value="";
 });
 
+document.getElementById("schedfile").addEventListener("change",e=>{ const f=e.target.files[0]; e.target.value=""; if(f) handleSchedule(f); });
 document.getElementById("pdffile").addEventListener("change",e=>{ const f=e.target.files[0]; e.target.value=""; if(f&&IMP) handlePdf(f); });
 
 document.addEventListener("input",e=>{
@@ -1254,6 +1404,8 @@ document.addEventListener("input",e=>{
 document.addEventListener("change",e=>{
   const t=e.target, sc=t.dataset.scope, f=t.dataset.f;
   if(sc==="ncday"){ const d=+t.dataset.day; NC.days=NC.days.filter(x=>x!==d); if(t.checked) NC.days.push(d); return; }
+  if(sc==="sch"){ const r=SCH.rows[+t.dataset.ri]; r.on=t.checked; document.getElementById("schrow-"+t.dataset.ri)?.classList.toggle("dropped",!t.checked);
+    const n=SCH.rows.filter(x=>x.on).length, b=document.getElementById("sch-apply"); if(b) b.textContent=n?`Add ${n} class${n===1?"":"es"}`:"Nothing selected"; return; }
   if(sc==="imp"&&f==="on"){ const ri=+t.dataset.ri; IMP.found.categories[ri].on=t.checked; document.getElementById("improw-"+ri)?.classList.toggle("dropped",!t.checked); document.getElementById("impsum").textContent=impSumText(); return; }
   if(t.dataset.status){ const c=getC(t.dataset.status); c.status=t.value; if(t.value!=="pf") c.pfResult=""; if(t.value!=="graded") S.override[c.id]=""; render(); save(); return; }
   if(t.dataset.pfres){ getC(t.dataset.pfres).pfResult=t.value; render(); save(); return; }
