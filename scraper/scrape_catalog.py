@@ -25,14 +25,26 @@ SITEMAP = BASE + "//sitemap.xml"          # exactly as listed in robots.txt
 INDEX = BASE + "/undergraduate/courses/"
 DELAY_SECONDS = 3
 OUT = Path(__file__).resolve().parent.parent / "courses.json"
-HEADERS = {"User-Agent": "SOPHICUSE course list builder (student project; https://github.com/sophiaschwartz/SOPHICUSE---GPA-Tracker)"}
+HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; SOPHICUSE course list builder (student project; https://github.com/sophiaschwartz/Sophicuse---GPA-Tracker)"}
 
 SUBJECT_URL = re.compile(r"/undergraduate/courses/([a-z0-9_-]+)/?$")
 HEADER = re.compile(r"^([A-Z]{2,4})\s+(\d{3}[A-Z]?)\s+(.+?)\s+\(\s*([^()]*?)\s*Credits?\s*\)\s*$")
 
 session = requests.Session()
 session.headers.update(HEADERS)
-robots = urllib.robotparser.RobotFileParser(BASE + "/robots.txt")
+robots = urllib.robotparser.RobotFileParser()
+
+
+def load_robots():
+    """Read robots.txt with our own request (some servers refuse Python's default one)."""
+    r = session.get(BASE + "/robots.txt", timeout=30)
+    print(f"robots.txt: HTTP {r.status_code}")
+    if r.status_code == 200:
+        robots.parse(r.text.splitlines())
+    elif 400 <= r.status_code < 500:
+        robots.parse([])            # no robots.txt means everything is allowed
+    else:
+        sys.exit("Couldn't read robots.txt, so the scraper stopped to be safe. Try again later.")
 
 
 def allowed(url):
@@ -54,10 +66,22 @@ def get(url):
 def subject_pages():
     """Find every subject page (ecn, ist, psc, ...) from the sitemap, or the index page as a backup."""
     urls = set()
-    xml = get(SITEMAP)
-    if xml:
-        for loc in re.findall(r"<loc>\s*([^<\s]+)\s*</loc>", xml):
-            if SUBJECT_URL.search(loc):
+    queue, checked = [SITEMAP, BASE + "/sitemap.xml"], set()
+    while queue and len(checked) < 25:
+        sm = queue.pop(0)
+        if sm in checked:
+            continue
+        checked.add(sm)
+        xml = get(sm)
+        if not xml:
+            continue
+        locs = re.findall(r"<loc>\s*([^<\s]+)\s*</loc>", xml)
+        print(f"sitemap {sm}: {len(locs)} links")
+        for loc in locs:
+            loc = loc.replace("&amp;", "&")
+            if loc.endswith(".xml"):
+                queue.append(loc)                    # a sitemap that lists other sitemaps
+            elif SUBJECT_URL.search(loc):
                 urls.add(loc if loc.endswith("/") else loc + "/")
     if not urls:
         html = get(INDEX)
@@ -126,7 +150,7 @@ def parse_page(html):
 
 
 def main():
-    robots.read()
+    load_robots()
     pages = subject_pages()
     if not pages:
         sys.exit("Couldn't find any subject pages. The catalog layout may have changed.")
