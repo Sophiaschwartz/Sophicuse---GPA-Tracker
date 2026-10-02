@@ -546,6 +546,8 @@ function planGoalText(){
   const cur=B.pts/B.cr;
   if(X>4) return {big:"Not possible", small:"GPAs top out at 4.0."};
   if(cur>=X-1e-9) return {big:"You're there", small:`Your GPA is already ${cur.toFixed(3)}. Keep averaging at least a ${X.toFixed(2)} to stay there.`};
+  if(X>=4-1e-9){ const later=(B.pts+4*30)/(B.cr+30);
+    return {big:"Not possible", small:`A 4.0 cumulative GPA means every grade on your record is an A. Your GPA is already ${cur.toFixed(3)}, so more A's will bring it closer to 4.0 but can never reach it exactly. For example, 30 more credits of A's would bring it to ${later.toFixed(3)}.`}; }
   if(g<=X+1e-9) return {big:"Not with that average", small:`Averaging ${S.plan.avg} (${g.toFixed(3)}) can't raise your GPA to ${X.toFixed(2)}. Try a higher average.`};
   const n=Math.ceil((X*B.cr-B.pts)/(g-X)-1e-9);
   const sems=Math.ceil(n/15);
